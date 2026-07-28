@@ -1,11 +1,27 @@
 'use client';
 
 import { MapPin } from 'lucide-react';
+import { AddressAutocomplete, type ParsedGooglePlace } from '@/components/ui';
 import { useRequestServiceStore } from '../../store/use-request-service-store';
 
 export function StepLocation() {
   const location = useRequestServiceStore((state) => state.formData.location);
   const updateFormData = useRequestServiceStore((state) => state.updateFormData);
+
+  function handlePlaceSelected(place: ParsedGooglePlace) {
+    updateFormData({
+      location: place.formattedAddress || location,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    });
+  }
+
+  function handleTextChange(value: string) {
+    // Morada editada à mão depois de uma sugestão escolhida (ou sem
+    // autocomplete disponível) deixa de corresponder às coordenadas
+    // anteriores — evita gravar um pin desatualizado.
+    updateFormData({ location: value, latitude: null, longitude: null });
+  }
 
   return (
     <div>
@@ -18,12 +34,13 @@ export function StepLocation() {
 
       <div className="mt-6 flex items-center gap-3 rounded-xl border border-input px-4 py-3 shadow-sm focus-within:ring-1 focus-within:ring-ring">
         <MapPin className="size-5 shrink-0 text-accent" />
-        <input
-          type="text"
+        <AddressAutocomplete
           value={location}
-          onChange={(event) => updateFormData({ location: event.target.value })}
+          onChange={handleTextChange}
+          onPlaceSelected={handlePlaceSelected}
           placeholder="Morada, freguesia ou código postal"
-          className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="w-full"
+          inputClassName="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
         />
       </div>
     </div>

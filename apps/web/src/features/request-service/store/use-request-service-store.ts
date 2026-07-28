@@ -7,6 +7,8 @@ export interface RequestServiceFormData {
   description: string;
   photoCount: number;
   location: string;
+  latitude: number | null;
+  longitude: number | null;
   urgency: UrgencyId | null;
   budget: string;
 }
@@ -26,6 +28,8 @@ const initialFormData: RequestServiceFormData = {
   description: '',
   photoCount: 0,
   location: '',
+  latitude: null,
+  longitude: null,
   urgency: null,
   budget: '',
 };

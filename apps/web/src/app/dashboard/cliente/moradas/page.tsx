@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { MapPin, Star, Trash2 } from 'lucide-react';
-import { Button, Card, EmptyState, ErrorState, Input, Skeleton } from '@/components/ui';
+import { AddressAutocomplete, Button, Card, EmptyState, ErrorState, Input, Skeleton } from '@/components/ui';
+import type { ParsedGooglePlace } from '@/components/ui';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
 import {
   fetchMyAddresses,
@@ -12,15 +13,34 @@ import {
   type Address,
 } from '@/features/dashboard/services/addresses-api';
 
-const EMPTY_FORM = { label: '', line1: '', line2: '', postalCode: '', city: '' };
+const EMPTY_FORM = {
+  label: '',
+  line1: '',
+  line2: '',
+  postalCode: '',
+  city: '',
+  latitude: null as number | null,
+  longitude: null as number | null,
+};
 
 function AddressForm({ onCreated }: { onCreated: () => void }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function setField<K extends keyof typeof EMPTY_FORM>(key: K, value: string) {
+  function setField<K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function handlePlaceSelected(place: ParsedGooglePlace) {
+    setForm((current) => ({
+      ...current,
+      line1: place.line1 || current.line1,
+      postalCode: place.postalCode || current.postalCode,
+      city: place.city || current.city,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    }));
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -48,11 +68,12 @@ function AddressForm({ onCreated }: { onCreated: () => void }) {
       <form onSubmit={handleSubmit} className="mt-3 grid gap-3 sm:grid-cols-2">
         <Input placeholder="Etiqueta (Casa, Trabalho...)" value={form.label} onChange={(e) => setField('label', e.target.value)} />
         <Input placeholder="Código postal" value={form.postalCode} onChange={(e) => setField('postalCode', e.target.value)} />
-        <Input
+        <AddressAutocomplete
           className="sm:col-span-2"
           placeholder="Morada (rua, nº)"
           value={form.line1}
-          onChange={(e) => setField('line1', e.target.value)}
+          onChange={(value) => setField('line1', value)}
+          onPlaceSelected={handlePlaceSelected}
         />
         <Input
           className="sm:col-span-2"

@@ -41,3 +41,4 @@ export { ThemeToggle } from './theme-toggle';
 export { Skeleton } from './skeleton';
 export { AvatarUpload, type AvatarUploadProps } from './avatar-upload';
 export { GoogleLoginButton } from './google-login-button';
+export { AddressAutocomplete, type AddressAutocompleteProps, type ParsedGooglePlace } from './address-autocomplete';

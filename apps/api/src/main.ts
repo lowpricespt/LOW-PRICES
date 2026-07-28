@@ -30,7 +30,6 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  // eslint-disable-next-line no-console
   console.log(`Low Prices API a correr em http://localhost:${port}`);
 }
 bootstrap();

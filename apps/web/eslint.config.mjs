@@ -21,7 +21,10 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ['.next/**', 'node_modules/**', 'dist/**'],
+    // next-env.d.ts é gerado automaticamente pelo Next.js a cada build/dev
+    // (a triple-slash reference é obrigatória nesse ficheiro) — nunca deve
+    // ser lintado nem editado à mão.
+    ignores: ['.next/**', 'node_modules/**', 'dist/**', 'next-env.d.ts'],
   },
 ];
 

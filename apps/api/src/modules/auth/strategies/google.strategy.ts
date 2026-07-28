@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
-import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+import { Profile, Strategy, VerifyCallback } from 'passport-google-oauth20';
 
 export interface GoogleProfile {
   googleId: string;
@@ -25,7 +25,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  validate(_accessToken: string, _refreshToken: string, profile: any, done: VerifyCallback): void {
+  validate(_accessToken: string, _refreshToken: string, profile: Profile, done: VerifyCallback): void {
     const email = profile.emails?.[0]?.value;
     if (!email) {
       done(new Error('A conta Google não tem um email associado.'), false);

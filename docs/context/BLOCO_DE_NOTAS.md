@@ -151,7 +151,7 @@ Isto substitui o Chat completo por agora — mais rápido de construir, valida o
 - Ecrã final do registo de Profissional agora propõe logo os planos (`/dashboard/profissional/premium`)
 
 **Não feito nesta fase (pedido tinha mais 4 frentes grandes):**
-- Sugestões de morada reais (Google Places) — precisa de decisão de implementação + `GOOGLE_MAPS_API_KEY`
+- ~~Sugestões de morada reais (Google Places)~~ — feito na fase 17 (ver abaixo)
 - Agenda/Calendário do Profissional
 - Avaliações
 - Stripe real (o `activate-simulated` continua a ser o substituto)
@@ -172,3 +172,47 @@ Isto substitui o Chat completo por agora — mais rápido de construir, valida o
 7. Stripe — ativa os planos Premium e a comissão de verdade
 8. Auditoria de responsividade (precisa da tua confirmação visual em vários tamanhos de ecrã)
 9. Mobile: ligar registo de Profissional + upload real (mesmo trabalho que já foi feito no Website)
+
+## 17. Fase — Moradas com autocomplete real (Google Places) + geocoding
+
+**Nota sobre esta doc:** algumas secções acima (4, 11, 14) já estavam desatualizadas antes desta
+fase — Avaliações, Conversas e Notificações por email já têm código real (ver commits
+`Ciclo de vida do Job...` e `Nucleo do marketplace real...`), não "só arquitetura" como a secção 4
+ainda diz. Não reescrita aqui de propósito (fora do pedido desta ronda) — só sinalizado para não
+enganar quem ler a seguir. Verifica sempre contra o código, não só contra este ficheiro.
+
+**Feito, real:**
+- `apps/web/src/lib/google-maps-loader.ts` — carrega a Maps JavaScript API (biblioteca `places`)
+  via `<script>` dinâmica (sem dependência npm nova), com `gm_authFailure` tratado.
+- `apps/web/src/components/ui/address-autocomplete.tsx` — input com sugestões reais
+  (`google.maps.places.Autocomplete`, restrito a `country: 'pt'`), grava lat/lng, e cai para um
+  `<Input>` de texto simples com aviso visível quando a chave falta ou a API recusa — nunca finge
+  que está ativo.
+- Ligado em dois sítios: Moradas do cliente
+  (`apps/web/src/app/dashboard/cliente/moradas/page.tsx`) e o step de localização do wizard de
+  pedido (`apps/web/src/features/request-service/components/steps/step-location.tsx`).
+- `latitude`/`longitude` passam a ser gravados a sério em `Address` e `ServiceRequest` quando o
+  utilizador escolhe uma sugestão — os DTOs do backend (`UpsertAddressDto`,
+  `CreateServiceRequestDto`) já aceitavam estes campos, só o frontend nunca os enviava.
+- Testado end-to-end localmente (Postgres/Redis via Docker, contas reais criadas): morada gravada
+  com sucesso, pedido de serviço publicado com sucesso, fallback (sem `GOOGLE_MAPS_API_KEY`)
+  confirmado a funcionar exatamente como esperado.
+
+**Decisão registada — filtro por raio/distância (Haversine) no matching:** não implementado nesta
+fase, de propósito. `MatchingService.findEligibleProfessionals` e
+`RequestsRepository.findAvailableForProfessional` continuam a filtrar só por categoria — ver
+razão já documentada em `docs/architecture/MATCHING_ARCHITECTURE.md`. Agora que há lat/lng reais a
+começar a ser gravados, o pré-requisito de dados existe, mas a maioria dos profissionais/pedidos
+já criados continua sem coordenadas (nunca preenchidas até agora) — ativar um filtro de raio já
+seria descartar profissionais elegíveis por falta de dados, não por estarem de facto fora da área.
+Próximo passo natural: (1) deixar o autocomplete em produção durante algum tempo para acumular
+coordenadas reais, (2) só depois adicionar Haversine em `MatchingService` com fallback inclusivo
+(nunca excluir quem não tem coordenadas), (3) considerar PostGIS só se o volume justificar — a
+imagem Docker local (`postgis/postgis:16-3.4`) já tem a extensão pronta, mas o Postgres do Railway
+em produção precisa de `CREATE EXTENSION postgis;` antes de poder ser usada lá.
+
+**Ação nova que só tu podes fazer:**
+- **Configurar `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`** (Vercel) e `GOOGLE_MAPS_API_KEY` (Railway, já
+  existe no schema mas continua vazia) na Google Cloud Console — ativar "Places API" (a biblioteca
+  clássica `places` da Maps JavaScript API, não a "Places API (New)"). Sem isto, o autocomplete
+  fica no fallback de texto simples (funcional, mas sem sugestões nem geocoding automático).

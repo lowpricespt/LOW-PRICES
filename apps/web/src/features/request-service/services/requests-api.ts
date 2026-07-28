@@ -49,6 +49,8 @@ export async function createServiceRequest(params: {
   categoryId: string;
   description: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
   urgency: string;
   budget?: number;
 }): Promise<ServiceRequestResponse> {

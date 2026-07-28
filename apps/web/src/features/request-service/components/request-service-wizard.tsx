@@ -64,6 +64,8 @@ export function RequestServiceWizard() {
           categoryId: formData.categoryId!,
           description: formData.description,
           location: formData.location,
+          latitude: formData.latitude ?? undefined,
+          longitude: formData.longitude ?? undefined,
           urgency: formData.urgency!,
           budget: formData.budget ? Number(formData.budget) : undefined,
         });

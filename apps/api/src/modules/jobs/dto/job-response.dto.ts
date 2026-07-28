@@ -14,6 +14,7 @@ export class JobResponseDto {
   scheduledStart!: Date | null;
   scheduledEnd!: Date | null;
   completedAt!: Date | null;
+  hasReview!: boolean;
   /// O contacto da outra parte — só preenchido porque, para o Job
   /// existir, um orçamento já foi aceite (ver QuotesService.accept()).
   /// É exatamente o "revelar contacto depois do orçamento aceite" que

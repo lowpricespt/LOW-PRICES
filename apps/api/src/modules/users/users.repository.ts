@@ -72,6 +72,24 @@ export class UsersRepository {
     return this.findById(id);
   }
 
+  /// Substitui por completo as categorias do profissional (não faz
+  /// merge) — mais simples e previsível para um formulário de seleção
+  /// tipo checklist, onde o utilizador vê sempre o estado final que quer.
+  async setProfessionalCategories(userId: string, categoryIds: string[]): Promise<void> {
+    const profile = await this.prisma.professionalProfile.findUnique({ where: { userId }, select: { id: true } });
+    if (!profile) throw new Error('PROFESSIONAL_PROFILE_NOT_FOUND');
+
+    const validCount = await this.prisma.serviceCategory.count({ where: { id: { in: categoryIds } } });
+    if (validCount !== categoryIds.length) throw new Error('INVALID_CATEGORY_ID');
+
+    await this.prisma.$transaction([
+      this.prisma.professionalCategory.deleteMany({ where: { professionalProfileId: profile.id } }),
+      this.prisma.professionalCategory.createMany({
+        data: categoryIds.map((categoryId) => ({ professionalProfileId: profile.id, categoryId })),
+      }),
+    ]);
+  }
+
   softDelete(id: string): Promise<User> {
     // Nunca apagar o registo fisicamente: mantém integridade referencial
     // com pedidos/avaliações passadas e cumpre requisitos de auditoria.

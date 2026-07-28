@@ -7,6 +7,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from './interfaces/authenticated-user.interface';
 import type { GoogleProfile } from './strategies/google.strategy';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -85,10 +86,12 @@ export class AuthController {
 
   @Public()
   @Get('google')
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleAuthGuard)
   googleLogin() {
-    // Nunca executa — o AuthGuard('google') intercepta e redireciona
-    // para o ecrã de consentimento do Google antes de chegar aqui.
+    // Nunca executa — o GoogleAuthGuard intercepta e redireciona para o
+    // ecrã de consentimento do Google antes de chegar aqui. Aceita
+    // ?role=PROFESSIONAL (ver GoogleAuthGuard) para o registo de
+    // profissional; sem o parâmetro, assume CLIENT.
   }
 
   @Public()
@@ -96,15 +99,23 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const profile = req.user as GoogleProfile;
-    const result = await this.authService.loginWithGoogle(profile, this.buildContext(req));
+    // A Google devolve aqui, tal e qual, o `state` que o GoogleAuthGuard
+    // enviou no início do fluxo — é como sabemos se o clique foi no
+    // botão "Entrar com Google" (cliente) ou no do registo de profissional.
+    const intendedRole = req.query.state === 'PROFESSIONAL' ? 'PROFESSIONAL' : undefined;
+    const result = await this.authService.loginWithGoogle(profile, this.buildContext(req), intendedRole);
     this.setRefreshCookie(res, result.refreshToken);
 
     // Redireciona de volta ao website — a sessão fica pronta porque o
     // AuthProvider (Website) já faz um refresh silencioso ao carregar
     // qualquer página, usando este mesmo cookie httpOnly. Nunca se
     // expõe o access token na URL de redirect.
-    const frontendUrl = this.configService.get<string>('CORS_ORIGIN') ?? '/';
-    const destination = result.user.role === 'PROFESSIONAL' ? '/dashboard/profissional' : '/dashboard/cliente';
+    const frontendUrl = this.configService.get<string>('CORS_ORIGIN')?.split(',')[0] ?? '/';
+    const destination = result.requiresCategorySelection
+      ? '/registo/profissional/categorias'
+      : result.user.role === 'PROFESSIONAL'
+        ? '/dashboard/profissional'
+        : '/dashboard/cliente';
     res.redirect(`${frontendUrl}${destination}`);
   }
 

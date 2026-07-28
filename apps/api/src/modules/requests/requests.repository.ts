@@ -75,6 +75,16 @@ export class RequestsRepository {
     return profile?.id ?? null;
   }
 
+  /// Usado para notificar o cliente por email (novo orçamento, etc.) —
+  /// ServiceRequest.clientId referencia o ClientProfile, não o User.
+  async findClientContactByProfileId(clientProfileId: string): Promise<{ email: string; name: string } | null> {
+    const profile = await this.prisma.clientProfile.findUnique({
+      where: { id: clientProfileId },
+      select: { user: { select: { email: true, name: true } } },
+    });
+    return profile?.user ?? null;
+  }
+
   async findProfessionalProfileByUserId(
     userId: string,
   ): Promise<{ id: string; categoryIds: string[]; hasActiveAreaAccess: boolean } | null> {

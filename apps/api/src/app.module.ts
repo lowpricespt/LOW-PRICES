@@ -14,6 +14,10 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { StorageModule } from './infra/storage/storage.module';
 import { QuotesModule } from './modules/quotes/quotes.module';
 import { JobsModule } from './modules/jobs/jobs.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { ReviewsModule } from './modules/reviews/reviews.module';
+import { AvailabilityModule } from './modules/availability/availability.module';
 
 @Module({
   imports: [
@@ -35,6 +39,10 @@ import { JobsModule } from './modules/jobs/jobs.module';
     StorageModule,
     QuotesModule,
     JobsModule,
+    AdminModule,
+    CategoriesModule,
+    ReviewsModule,
+    AvailabilityModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

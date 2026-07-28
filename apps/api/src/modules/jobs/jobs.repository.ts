@@ -5,6 +5,7 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 const WITH_PARTIES = {
   serviceRequest: { include: { client: { include: { user: true } } } },
   quote: { include: { professionalProfile: { include: { user: true } } } },
+  review: true,
 } satisfies Prisma.JobInclude;
 
 @Injectable()
@@ -28,6 +29,21 @@ export class JobsRepository {
       where: { quote: { professionalProfileId } },
       include: WITH_PARTIES,
       orderBy: { scheduledStart: 'desc' },
+    });
+  }
+
+  updateStatus(id: string, data: Prisma.JobUpdateInput) {
+    return this.prisma.job.update({ where: { id }, data, include: WITH_PARTIES });
+  }
+
+  /// Usado pelo cálculo de Ganhos — só Jobs concluídos, com o preço do
+  /// orçamento aceite (não há tabela Payment ainda, o valor "ganho" é o
+  /// valor acordado no Quote).
+  findCompletedForProfessional(professionalProfileId: string) {
+    return this.prisma.job.findMany({
+      where: { quote: { professionalProfileId }, status: 'COMPLETED' },
+      include: { quote: true },
+      orderBy: { completedAt: 'desc' },
     });
   }
 }

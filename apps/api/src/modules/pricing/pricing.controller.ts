@@ -29,6 +29,26 @@ export class PricingController {
     return { monthly, weekly };
   }
 
+  // Estado atual do plano do profissional — a página "Premium"/"Planos"
+  // do dashboard precisa disto para mostrar "o teu plano é X, expira em
+  // Y" em vez de só o botão de compra.
+  @Roles('PROFESSIONAL')
+  @Get('area-access/me')
+  async getMyAreaAccess(@CurrentUser() user: AuthenticatedUser) {
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: { userId: user.userId },
+      select: { hasAreaAccess: true, areaAccessExpiresAt: true, subscriptionTier: true },
+    });
+    if (!profile) throw new BadRequestException('Perfil de profissional não encontrado.');
+
+    const isActive = profile.hasAreaAccess && (!profile.areaAccessExpiresAt || profile.areaAccessExpiresAt > new Date());
+    return {
+      isActive,
+      subscriptionTier: profile.subscriptionTier,
+      areaAccessExpiresAt: profile.areaAccessExpiresAt,
+    };
+  }
+
   /**
    * SIMULAÇÃO — ativa o acesso à área sem cobrar nada. Existe para o
    * bloqueio de informação (ver ServiceRequestResponseDto) ser

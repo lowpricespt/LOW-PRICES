@@ -3,6 +3,9 @@ import { PrismaService } from '../../infra/prisma/prisma.service';
 
 export interface EligibleProfessional {
   professionalProfileId: string;
+  email: string;
+  name: string;
+  hasActiveAreaAccess: boolean;
 }
 
 @Injectable()
@@ -50,9 +53,25 @@ export class MatchingService {
         user: { status: 'ACTIVE' },
         categories: { some: { categoryId: { in: candidateCategoryIds } } },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        hasAreaAccess: true,
+        areaAccessExpiresAt: true,
+        user: { select: { email: true, name: true } },
+      },
     });
 
-    return professionals.map((professional) => ({ professionalProfileId: professional.id }));
+    return professionals.map((professional) => ({
+      professionalProfileId: professional.id,
+      email: professional.user.email,
+      name: professional.user.name,
+      // Mesma regra de "Acesso à Área" usada em todo o resto da app (ver
+      // RequestsRepository.findProfessionalProfileByUserId e
+      // ServiceRequestResponseDto) — repetida aqui de propósito para que
+      // a notificação por email NUNCA revele a localização exata a quem
+      // não pagou por isso.
+      hasActiveAreaAccess:
+        professional.hasAreaAccess && (!professional.areaAccessExpiresAt || professional.areaAccessExpiresAt > new Date()),
+    }));
   }
 }

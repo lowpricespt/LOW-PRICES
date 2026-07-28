@@ -1,15 +1,28 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { RequestsRepository } from './requests.repository';
 import { ServiceRequestResponseDto } from './dto/service-request-response.dto';
 import type { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import type { ListRequestsQueryDto } from './dto/list-requests-query.dto';
 import { MatchingService } from '../matching/matching.service';
+import { EmailService } from '../../infra/email/email.service';
+
+const URGENCY_LABELS: Record<string, string> = {
+  hoje: 'Hoje',
+  'esta-semana': 'Esta semana',
+  'este-mes': 'Este mês',
+  'sem-urgencia': 'Sem urgência',
+};
 
 @Injectable()
 export class RequestsService {
+  private readonly logger = new Logger(RequestsService.name);
+
   constructor(
     private readonly requestsRepository: RequestsRepository,
     private readonly matchingService: MatchingService,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(clientId: string, dto: CreateServiceRequestDto): Promise<ServiceRequestResponseDto> {
@@ -30,10 +43,10 @@ export class RequestsService {
   }
 
   /**
-   * DRAFT -> PUBLISHED. Este é o gatilho do fluxo descrito em
-   * NOTIFICATIONS_ARCHITECTURE.md: identifica profissionais elegíveis
-   * pela categoria e regista o "match" (notifiedAt) — o ENVIO real
-   * (push/email/sms) ainda não está ligado (ver TODO abaixo).
+   * DRAFT -> PUBLISHED. Identifica profissionais elegíveis pela
+   * categoria, regista o "match" (notifiedAt) e envia-lhes um email real
+   * (via Resend) — substitui o TODO da Fase 11 para o canal Email; Push/
+   * SMS/Interna continuam por implementar (ver NOTIFICATIONS_ARCHITECTURE.md).
    */
   async publish(id: string, clientId: string): Promise<ServiceRequestResponseDto> {
     const request = await this.requestsRepository.findById(id);
@@ -51,12 +64,59 @@ export class RequestsService {
         this.requestsRepository.createMatch(id, professional.professionalProfileId),
       ),
     );
-    // TODO (Fase 11 — Notificações): disparar aqui os
-    // NotificationChannelSender (Push/Email/SMS/Interna) para cada
-    // eligibleProfessionals — a lista de destinatários já está correta,
-    // só falta o envio real.
+
+    await this.notifyEligibleProfessionals(updated, eligibleProfessionals);
 
     return ServiceRequestResponseDto.fromEntity(updated, true);
+  }
+
+  /**
+   * Envio best-effort: uma falha a notificar um profissional (Resend em
+   * baixo, email inválido, etc.) nunca pode fazer falhar a publicação do
+   * pedido para o cliente — por isso cada envio é isolado com o seu
+   * próprio try/catch, nunca um Promise.all que rejeitaria tudo ao
+   * primeiro erro.
+   */
+  private async notifyEligibleProfessionals(
+    request: { id: string; description: string; urgency: string; budget: unknown; location: string; category: { name: string } },
+    professionals: Awaited<ReturnType<MatchingService['findEligibleProfessionals']>>,
+  ): Promise<void> {
+    const siteUrl = this.configService.get<string>('CORS_ORIGIN')?.split(',')[0] ?? '';
+    const dashboardUrl = `${siteUrl}/dashboard/profissional/pedidos-disponiveis`;
+    const urgencyLabel = URGENCY_LABELS[request.urgency] ?? request.urgency;
+    const budget = request.budget ? `${Number(request.budget).toFixed(2)} €` : 'Não definido';
+
+    await Promise.all(
+      professionals.map(async (professional) => {
+        // Mesma regra do resto da app: só quem tem Acesso à Área ativo vê
+        // a localização exata — nunca a revelar "por engano" aqui.
+        const location = professional.hasActiveAreaAccess
+          ? request.location
+          : 'Disponível para quem tem Acesso à Área ativo.';
+
+        try {
+          await this.emailService.send({
+            to: professional.email,
+            subject: `Novo pedido de ${request.category.name} perto de ti — Low Prices`,
+            html: `
+              <p>Olá ${professional.name},</p>
+              <p>Há um novo pedido na tua categoria (<strong>${request.category.name}</strong>):</p>
+              <p>${request.description}</p>
+              <ul>
+                <li><strong>Urgência:</strong> ${urgencyLabel}</li>
+                <li><strong>Orçamento indicado:</strong> ${budget}</li>
+                <li><strong>Localização:</strong> ${location}</li>
+              </ul>
+              <p><a href="${dashboardUrl}">Ver pedido e enviar orçamento</a></p>
+            `,
+          });
+        } catch (error) {
+          this.logger.error(
+            `Falha ao notificar profissional ${professional.professionalProfileId} sobre o pedido ${request.id}: ${error instanceof Error ? error.message : error}`,
+          );
+        }
+      }),
+    );
   }
 
   /**

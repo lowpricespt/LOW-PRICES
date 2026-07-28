@@ -1,15 +1,36 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { QuotesRepository } from './quotes.repository';
 import { RequestsRepository } from '../requests/requests.repository';
 import { QuoteResponseDto } from './dto/quote-response.dto';
 import type { CreateQuoteDto } from './dto/create-quote.dto';
+import { EmailService } from '../../infra/email/email.service';
 
 @Injectable()
 export class QuotesService {
+  private readonly logger = new Logger(QuotesService.name);
+
   constructor(
     private readonly quotesRepository: QuotesRepository,
     private readonly requestsRepository: RequestsRepository,
+    private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
+
+  private get dashboardBaseUrl(): string {
+    return this.configService.get<string>('CORS_ORIGIN')?.split(',')[0] ?? '';
+  }
+
+  /// Nunca deixar uma falha de email derrubar a operação principal
+  /// (aceitar/enviar orçamento) — mesma postura best-effort do
+  /// RequestsService.publish.
+  private async notifySafely(params: { to: string; subject: string; html: string }, context: string): Promise<void> {
+    try {
+      await this.emailService.send(params);
+    } catch (error) {
+      this.logger.error(`Falha ao enviar notificação (${context}): ${error instanceof Error ? error.message : error}`);
+    }
+  }
 
   /**
    * Um profissional envia um orçamento a um pedido publicado. Regras:
@@ -37,8 +58,27 @@ export class QuotesService {
     if (request.status === 'PUBLISHED') {
       await this.requestsRepository.update(dto.serviceRequestId, { status: 'IN_NEGOTIATION' });
     }
-    // TODO (Fase 11 — Notificações): notificar o cliente de que recebeu um
-    // novo orçamento (Push/Email/Interna) — ver NOTIFICATIONS_ARCHITECTURE.md.
+
+    const client = await this.requestsRepository.findClientContactByProfileId(request.clientId);
+    if (client) {
+      await this.notifySafely(
+        {
+          to: client.email,
+          subject: `Recebeste um novo orçamento — ${request.category.name}`,
+          html: `
+            <p>Olá ${client.name},</p>
+            <p><strong>${quote.professionalProfile.user.name}</strong> enviou-te um orçamento de
+            <strong>${Number(quote.price).toFixed(2)} €</strong> para o teu pedido de
+            <strong>${request.category.name}</strong>.</p>
+            ${quote.message ? `<p>Mensagem: "${quote.message}"</p>` : ''}
+            <p><a href="${this.dashboardBaseUrl}/dashboard/cliente/propostas">Ver orçamento</a></p>
+          `,
+        },
+        `novo orçamento, pedido ${request.id}`,
+      );
+    }
+    // Notificação Push/Interna continua por implementar (Fase 11) — Email
+    // já está ligado.
 
     return QuoteResponseDto.fromEntity(quote);
   }
@@ -73,7 +113,23 @@ export class QuotesService {
       quoteId: quote.id,
       status: 'SCHEDULED',
     });
-    // TODO (Fase 11): notificar o profissional aceite (e os recusados).
+
+    await this.notifySafely(
+      {
+        to: updated.professionalProfile.user.email,
+        subject: `O teu orçamento foi aceite — ${request.category.name}`,
+        html: `
+          <p>Olá ${updated.professionalProfile.user.name},</p>
+          <p>O teu orçamento para o pedido de <strong>${request.category.name}</strong> foi aceite. Já podes
+          ver o contacto do cliente na secção "Trabalhos aceites" do teu painel.</p>
+          <p><a href="${this.dashboardBaseUrl}/dashboard/profissional/trabalhos-aceites">Ver trabalho</a></p>
+        `,
+      },
+      `orçamento aceite, pedido ${quote.serviceRequestId}`,
+    );
+    // Notificar os profissionais cujos orçamentos foram automaticamente
+    // rejeitados fica por implementar (Fase 11) — não bloqueia o loop
+    // principal (cliente <-> profissional aceite).
 
     return QuoteResponseDto.fromEntity(updated);
   }

@@ -58,20 +58,29 @@ export class AuthService {
 
   /**
    * Fluxo do Login com Google:
-   *  1. Já existe um User com este googleId? → login direto.
+   *  1. Já existe um User com este googleId? → login direto (role da
+   *     conta existente, nunca a intenção do botão que foi clicado —
+   *     mudar de role via login seria uma escalada de privilégio).
    *  2. Não, mas existe um User com este email (registado por password)?
    *     → liga o googleId a essa conta existente (mesma pessoa, novo
-   *     método de login), nunca cria uma conta duplicada.
-   *  3. Não existe nenhum → cria uma conta nova, role CLIENT por
-   *     omissão (um Especialista que queira entrar por Google pode
-   *     mudar de role mais tarde nas Definições — decisão simples para
-   *     não complicar o ecrã de consentimento do Google com escolha de
-   *     role a meio do fluxo OAuth).
+   *     método de login), role também inalterada.
+   *  3. Não existe nenhum → cria uma conta nova com `intendedRole`
+   *     (CLIENT por omissão) — vem do botão que a pessoa carregou
+   *     (`/auth/google?role=PROFESSIONAL` no registo de profissional),
+   *     passado através do parâmetro OAuth `state` (ver GoogleAuthGuard).
+   *
+   * `requiresCategorySelection`: true sempre que a conta é PROFESSIONAL
+   * e ainda não tem nenhuma categoria escolhida — cobre tanto o
+   * Especialista que acabou de criar conta via Google (nunca passou pelo
+   * wizard) como um Especialista mais antigo que por alguma razão ainda
+   * não as tem. O AuthController usa isto para redirecionar para o passo
+   * de categorias em vez do dashboard.
    */
   async loginWithGoogle(
     profile: { googleId: string; email: string; name: string },
     context: RequestContext,
-  ): Promise<AuthResponseDto> {
+    intendedRole?: 'CLIENT' | 'PROFESSIONAL',
+  ): Promise<AuthResponseDto & { requiresCategorySelection: boolean }> {
     let user = await this.usersRepository.findByGoogleId(profile.googleId);
 
     if (!user) {
@@ -79,16 +88,17 @@ export class AuthService {
       if (existingByEmail) {
         user = await this.usersRepository.linkGoogleId(existingByEmail.id, profile.googleId);
       } else {
+        const role = intendedRole === 'PROFESSIONAL' ? 'PROFESSIONAL' : 'CLIENT';
         user = await this.usersRepository.create({
           email: profile.email,
           name: profile.name,
           googleId: profile.googleId,
-          role: 'CLIENT',
+          role,
         });
         await this.auditLogService.record({
           userId: user.id,
           action: AuditAction.USER_REGISTERED,
-          metadata: { role: 'CLIENT', via: 'google' },
+          metadata: { role, via: 'google' },
           ipAddress: context.ipAddress,
         });
       }
@@ -98,7 +108,16 @@ export class AuthService {
       throw new UnauthorizedException('Esta conta está desativada.');
     }
 
-    return this.issueTokensForUser(user.id, user.role, context);
+    let requiresCategorySelection = false;
+    if (user.role === 'PROFESSIONAL') {
+      const categoryCount = await this.prisma.professionalCategory.count({
+        where: { professionalProfile: { userId: user.id } },
+      });
+      requiresCategorySelection = categoryCount === 0;
+    }
+
+    const tokens = await this.issueTokensForUser(user.id, user.role, context);
+    return { ...tokens, requiresCategorySelection };
   }
 
   /**

@@ -55,6 +55,7 @@ model ClientProfile {
   favorites     Favorite[]
   serviceRequests ServiceRequest[]
   notificationPreference NotificationPreference?
+  reviews       Review[]
 }
 
 model ProfessionalProfile {
@@ -88,6 +89,8 @@ model ProfessionalProfile {
   quotes        Quote[]
   requestMatches ServiceRequestMatch[]
   notificationPreference NotificationPreference?
+  reviews             Review[]
+  availabilityBlocks  AvailabilityBlock[]
 
   @@index([verificationStatus])
 }
@@ -399,6 +402,54 @@ model Job {
   scheduledEnd   DateTime?
   completedAt    DateTime?
   cancelledAt    DateTime?
+  cancelReason   String?
+
+  review Review?
 
   @@index([status])
+}
+
+/// Avaliação do Cliente ao Profissional, no final de um Job — uma por
+/// Job (@@unique em jobId), só possível depois de COMPLETED (aplicado
+/// no ReviewsService, não no schema). A média/contagem por profissional
+/// é calculada em runtime (COUNT/AVG), não guardada — evita
+/// desincronização; se o volume um dia justificar cache, adiciona-se um
+/// campo desnormalizado sem mexer neste modelo.
+model Review {
+  id                    String   @id @default(uuid())
+  jobId                 String   @unique
+  job                   Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  clientId              String
+  client                ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  professionalProfileId String
+  professionalProfile   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  rating  Int     // 1 a 5, validado no DTO (class-validator), não no schema
+  comment String?
+
+  createdAt DateTime @default(now())
+
+  @@index([professionalProfileId])
+}
+
+/// Versão mínima de "Agenda": o Profissional marca períodos em que não
+/// está disponível (férias, folga, etc.). Não é ainda o calendário
+/// completo com horário semanal recorrente (ver NOTIFICATIONS_ARCHITECTURE.md
+/// / roadmap "Agenda do Profissional") — decisão deliberada para dar
+/// conteúdo real à página "Agenda" sem esperar pelo desenho completo do
+/// calendário, e sem migração disruptiva quando esse dia chegar (este
+/// modelo continua a fazer sentido como "exceções" mesmo com horário
+/// semanal a existir por cima).
+model AvailabilityBlock {
+  id                    String   @id @default(uuid())
+  professionalProfileId String
+  professionalProfile   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+
+  createdAt DateTime @default(now())
+
+  @@index([professionalProfileId])
 }

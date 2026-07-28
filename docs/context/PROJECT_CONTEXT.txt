@@ -1,0 +1,344 @@
+================================================================================
+LOW PRICES — PROJECT_CONTEXT.txt
+Memória oficial do projeto. Atualizado no final de cada fase de desenvolvimento.
+Última atualização: Fase 8c (Cloudflare R2 real, MatchingService dedicado
+com subcategorias, PricingService expandido, avatar do Perfil Cliente
+ligado de ponta a ponta)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. VISÃO DO PROJETO
+--------------------------------------------------------------------------------
+A Low Prices é uma plataforma que liga clientes a profissionais para pequenos
+serviços locais (canalizador, eletricista, pintor, jardineiro, limpeza,
+mudanças, montagem de móveis, informática, reparações).
+
+Objetivo: qualquer pessoa consegue pedir um serviço em menos de 2 minutos;
+qualquer profissional consegue aceitar um trabalho em menos de 1 minuto.
+
+Documentação completa em docs/ (ver secção 4).
+
+--------------------------------------------------------------------------------
+2. ARQUITETURA
+--------------------------------------------------------------------------------
+Ver docs/architecture/MONOREPO_ARCHITECTURE.md para o documento de referência
+completo (estrutura de pastas, responsabilidades, comunicação entre apps,
+convenções, scripts).
+
+Resumo: Monólito modular (NestJS) com Clean Architecture, Feature-Based
+Architecture, SOLID, Repository Pattern e Dependency Injection em todas as
+camadas (backend, web, mobile). Uma única API, uma única base de dados.
+
+--------------------------------------------------------------------------------
+3. STACK TECNOLÓGICA
+--------------------------------------------------------------------------------
+Mobile:   Flutter/Dart, Riverpod, go_router, Dio, flutter_secure_storage,
+          shared_preferences, google_fonts, connectivity_plus
+Web:      Next.js 15, React 19, TypeScript, Tailwind, TanStack Query, Zustand,
+          Axios, Zod
+Backend:  NestJS, PostgreSQL+PostGIS, Prisma, Redis, JWT (@nestjs/jwt +
+          passport-jwt), Argon2, @nestjs/throttler, Helmet, cookie-parser,
+          class-validator
+Infra:    Docker, Docker Compose, Turborepo, pnpm
+
+--------------------------------------------------------------------------------
+4. ESTRUTURA DO MONOREPO E DOCUMENTAÇÃO
+--------------------------------------------------------------------------------
+low-prices/
+├── apps/{api,web,mobile}/
+├── infra/docker/
+├── docs/
+│   ├── architecture/
+│   │   ├── 00-FUNDACAO-TECNICA.md        (documento original, movido para cá)
+│   │   ├── MONOREPO_ARCHITECTURE.md       (Fase 5)
+│   │   ├── AUTHENTICATION_ARCHITECTURE.md (Fase 5)
+│   │   ├── NOTIFICATIONS_ARCHITECTURE.md  (Fase 4.2, estendido nas Fases 6 e 8+9)
+│   │   ├── CORE_PLATFORM_ARCHITECTURE.md  (Fase 7, estendido na Fase 8+9 com o
+│   │   │                                    ciclo de vida completo do serviço)
+│   │   ├── STORAGE_ARCHITECTURE.md         (Fase 8+9)
+│   │   └── PAYMENTS_ARCHITECTURE.md        (Fase 8+9)
+│   ├── business/BUSINESS_MODEL.md          (Fase 4.2, movido para cá)
+│   └── context/PROJECT_CONTEXT.txt          (este ficheiro, movido para cá)
+├── package.json, pnpm-workspace.yaml, turbo.json, .env.example, .gitignore
+└── README.md
+
+IMPORTANTE: a partir da Fase 5, toda a documentação nova entra em docs/,
+nunca solta na raiz.
+
+--------------------------------------------------------------------------------
+5. FUNCIONALIDADES EXISTENTES (implementadas)
+--------------------------------------------------------------------------------
+BACKEND (Fase 8+9 — novo):
+- Schema Prisma expandido: Perfis completos (Address, Document,
+  PortfolioItem, Favorite, NotificationPreference, ProfessionalCategory
+  N:N) e o núcleo de Serviços (ServiceRequest, Quote, Job,
+  ServiceRequestMatch) — 19 modelos no total
+- Módulo `requests` FUNCIONAL (não só arquitetura): criar pedido,
+  publicar (identifica profissionais elegíveis e regista o match),
+  listar "os meus pedidos" (paginado) e "pedidos disponíveis" (filtrado
+  por categoria do profissional), consultar um pedido
+- Envio real de notificações na publicação ainda por ligar (TODO
+  explícito no código, aponta para a Fase 11)
+
+BACKEND (Fase 5 — novo):
+- Módulo de Autenticação completo: registo, login, refresh com rotação e
+  deteção de reuso de token, logout, logout global
+- Password hashing com Argon2id
+- JWT de acesso (15 min) + refresh token opaco (30 dias, hash SHA-256 em BD)
+- Guards globais (JwtAuthGuard bloqueia tudo por defeito; @Public() liberta
+  rotas específicas; RolesGuard + @Roles() para permissões)
+- Rate limiting (@nestjs/throttler), Helmet, CORS restrito, ValidationPipe
+  global, GlobalExceptionFilter
+- Módulo de Utilizadores: GET/PATCH/DELETE /users/me (soft-delete)
+- AuditLog: regista login, logout, registo, refresh, deteção de roubo de
+  token, atualização de perfil, eliminação de conta
+- Prisma: User, Session, RefreshToken, VerificationToken (preparado),
+  PasswordResetToken (preparado), AuditLog
+- Ver docs/architecture/AUTHENTICATION_ARCHITECTURE.md para o fluxo completo
+
+WEBSITE (Fase 7 — novo):
+- Dashboards Cliente e Profissional completos: DashboardShell partilhado
+  (sidebar desktop / drawer mobile), navegação por constants/dashboard-nav.ts
+- Página de referência "Os meus pedidos": pesquisa, filtro, ordenação,
+  paginação ("carregar mais"), Skeleton, EmptyState, ErrorState — tudo
+  real contra dados fictícios (features/dashboard/mock-data.ts), pronto
+  para trocar por TanStack Query
+- Restantes 18 páginas dos dois dashboards: navegação real, conteúdo
+  StubSection (mesmo padrão do PlaceholderPage do mobile)
+- Login/Registo redirecionam para o dashboard certo consoante a role
+
+WEBSITE (Fase 5 — atualizado):
+- AuthProvider real (antes era placeholder): login, register, logout,
+  restauro automático de sessão ao carregar a página (via refresh silencioso)
+- auth-session.ts: refreshAccessToken() real, ligado a POST /auth/refresh
+- LoginForm/RegisterForm ligados ao AuthProvider, com validação e feedback
+  de erro
+- Cliente Axios com withCredentials (necessário para o cookie httpOnly do
+  refresh token)
+- LIMITAÇÃO CONHECIDA: o middleware.ts não consegue ler o cookie de sessão
+  (definido pelo domínio da API, origem diferente do website em dev) — a
+  proteção de rotas real acontece no cliente via useAuth(). Documentado em
+  AUTHENTICATION_ARCHITECTURE.md, secção 10.
+- (Fases anteriores) Landing page, wizards visuais, design system, tema
+
+MOBILE (Fase 5 — atualizado):
+- AuthRepositoryImpl substitui o StubAuthRepository (mesma assinatura,
+  Result<void>) — liga-se à mesma API
+- ApiService com refresh automático em 401 (interceptor onError chama
+  refreshAccessToken() e repete o pedido original)
+- StorageService já guardava access+refresh token desde a Fase 4.1
+- (Fases anteriores) Fundação completa, wizard do cliente (8 passos)
+
+--------------------------------------------------------------------------------
+6. FUNCIONALIDADES FUTURAS (por implementar)
+--------------------------------------------------------------------------------
+- Verificação de email, recuperação de password (modelos Prisma já existem)
+- Login social (Google/Apple)
+- Dashboards Cliente/Profissional (Website + App)
+- Perfis completos (upload de documentos, verificação)
+- Categorias servidas pela API (hoje ainda hardcoded em cada cliente)
+- Fluxo de orçamentos, Chat, Pagamentos (Stripe Connect), Avaliações
+- Notificações push reais (Firebase) — arquitetura já documentada
+- Painel de Administração
+- Resolver a limitação do middleware (domínio partilhado ou proxy)
+
+--------------------------------------------------------------------------------
+7. DECISÕES TÉCNICAS TOMADAS (e porquê)
+--------------------------------------------------------------------------------
+- (Fases anteriores) Monólito modular; Result Pattern no mobile; autosave
+  nativo por plataforma; categorias centralizadas por ficheiro; Firebase/
+  Maps só como contratos até haver credenciais; PlaceholderPage no mobile.
+- Refresh token OPACO (string aleatória), não um JWT — não precisa de ser
+  autocontido porque o servidor consulta sempre a BD para o validar; ser
+  opaco reduz superfície de ataque.
+- Refresh token do Website em cookie httpOnly + também devolvido no body
+  da resposta (para o Mobile o guardar em secure storage) — o Website
+  ignora esse campo do body por design.
+- Rotação de refresh token com deteção de reuso: token já substituído
+  sendo reutilizado é sinal de roubo → revoga todas as sessões do
+  utilizador imediatamente.
+- Eliminação de conta é sempre soft-delete (nunca apagar fisicamente) —
+  mantém integridade referencial e cumpre RGPD via anonimização do email.
+- Documentação centralizada em docs/, nunca solta na raiz (decisão da
+  Fase 5, após feedback explícito).
+- Dashboards: só 2 páginas de referência totalmente construídas (Home +
+  "Os meus pedidos"); as restantes 18 usam StubSection/DashboardTabStub
+  com navegação real — decisão deliberada para não gastar esforço em UI
+  detalhada antes de existir schema/endpoint para os dados reais (Fases
+  9-13). Documentado, não escondido.
+- "Estado dos pedidos" e "Calendário" não são rotas de navegação à parte
+  — ficam dentro de "Os meus pedidos"/"Pedidos disponíveis" e "Agenda"
+  respetivamente, como visualizações da mesma informação.
+- Chat, Agenda e Avaliações desenhados desde já com modelos Prisma
+  completos (mesmo sem implementação) para a Fase 8-13 não exigir
+  redesenho de schema — só ligar os endpoints.
+
+--------------------------------------------------------------------------------
+8. CONVENÇÕES DE CÓDIGO
+--------------------------------------------------------------------------------
+(inalterado — ver Fase 4.2) Feature-Based Architecture em todas as
+plataformas; nenhuma feature acede diretamente a Axios/Dio; Português de
+Portugal na UI, inglês em nomes de código.
+
+--------------------------------------------------------------------------------
+9. ESTADO ATUAL DE CADA MÓDULO
+--------------------------------------------------------------------------------
+Backend API .......... [OK] Fundação + Autenticação + Perfis (schema,
+                              agora com subcategorias) + Sistema de
+                              Serviços (requests) + PricingService
+                              (Strategy Pattern, comissão ativa no MVP)
+Website ............... [OK] Fundação + landing page + wizards + Auth REAL
+                              + Dashboards Cliente/Profissional (navegação
+                              completa, 2 páginas de referência com dados)
+App Mobile ............ [OK] Fundação + wizards + Auth REAL + Dashboards
+                              Cliente/Profissional (bottom nav, navegação
+                              completa)
+Painel Admin .......... [NÃO INICIADO]
+Infraestrutura/Docker . [OK]
+Notificações .......... [PARCIAL] Arquitetura documentada (Push, Interna,
+                              Email, SMS, WebSocket) — sem envio real
+Monetização ........... [PARCIAL] Modelo definido (comissão) + arquitetura
+                              técnica flexível documentada — sem
+                              implementação (Payment/PricingService)
+
+--------------------------------------------------------------------------------
+10. PROBLEMAS ENCONTRADOS E SOLUÇÕES APLICADAS
+--------------------------------------------------------------------------------
+(Fases anteriores) Ver histórico completo nas versões anteriores deste
+ficheiro / conversas anteriores — resumo: dark mode por defeito indevido,
+trocas de ficheiros com nomes iguais em cópias manuais, opção turbopack.root
+não suportada, pnpm dev corrido na pasta errada, Flutter sem projetos
+nativos gerados.
+
+NOVO NESTA FASE — CORRUPÇÃO ESTRUTURAL DO MONOREPO:
+Auditoria completa revelou que package.json (raiz), package.json
+(apps/api), .env.example (raiz) e .gitignore (raiz) tinham sido
+sobrescritos com cópias do conteúdo de apps/web (provavelmente durante uma
+fusão de zips anterior descuidada). Consequência: o package.json REAL do
+backend NestJS (com @nestjs/common, Prisma, etc.) tinha desaparecido por
+completo. Corrigido nesta fase:
+- package.json raiz: restaurado para o conteúdo genérico do Turborepo
+- apps/api/package.json: recriado com todas as dependências (Fase 1 +
+  Fase 5: @nestjs/jwt, @nestjs/passport, passport-jwt, @nestjs/throttler,
+  argon2, helmet, cookie-parser, class-validator, class-transformer)
+- .env.example raiz: restaurado para as variáveis do backend/infra
+- .gitignore raiz: restaurado para o conteúdo genérico do monorepo
+Lição aplicada: o campo "name" de cada package.json identifica
+inequivocamente a que pasta pertence — verificar sempre esse campo ao
+investigar problemas de dependências estranhos.
+
+--------------------------------------------------------------------------------
+11. ROADMAP ATUALIZADO
+--------------------------------------------------------------------------------
+[CONCLUÍDO]
+Fase 1   - Fundação do monorepo, Docker, Backend NestJS mínimo, Prisma inicial
+Fase 2   - Fundação do Website (Next.js)
+Fase 3   - Identidade visual, landing page, wizards visuais (web), UX/tema
+Fase 4   - Fundação da App Mobile (Flutter) + wizard do cliente
+Fase 4.2 - Documentação estratégica (notificações, modelo de negócio, contexto)
+Fase 5   - Backend de Autenticação completo + integração Website/Mobile +
+           auditoria e correção estrutural do monorepo + docs/ centralizada
+Fase 6   - Wizard do Profissional na App Mobile (9 passos) + arquitetura de
+           notificações multi-canal + arquitetura de monetização flexível
+Fase 7   - Dashboards Cliente/Profissional (Website + App, navegação
+           completa) + arquitetura de Chat/Agenda/Avaliações/IA
+Fase 8+9 - Perfis completos (schema) + Sistema de Serviços funcional
+           (ServiceRequest/Quote/Job, módulo requests real) +
+           arquitetura de Storage e Pagamentos
+
+Fase 8b  - Subcategorias no schema, PricingService executável, Perfil
+           Cliente real (Website) ligado a /users/me
+
+Fase 8c  - Cloudflare R2 real (StorageModule/StorageService/
+           R2StorageProvider/ImageProcessingService), MatchingService
+           dedicado (com subcategorias), PricingService expandido (Boost,
+           moeda virtual), avatar do Perfil Cliente ligado de ponta a
+           ponta (upload -> R2 -> ClientProfile.avatarUrl)
+
+[PRÓXIMO]
+Fase 8d  - Perfil Especialista completo (Website), ligado ao
+           StorageModule desta fase para fotografia/capa/documentos/
+           portefólio; Mobile (Cliente + Especialista) continua por
+           fazer
+Fase 9   - Categorias servidas pela API
+Fase 10  - Fluxo de orçamentos
+Fase 11  - Chat em tempo real
+Fase 12  - Pagamentos (Stripe Connect) + Payment/PricingService (ver
+           docs/business/BUSINESS_MODEL.md, secção 4)
+Fase 13  - Avaliações e histórico
+Fase 14  - Notificações push reais (Firebase) + canais Email/SMS/WebSocket
+Fase 15  - Painel de Administração
+Fase 16  - QA final, hardening de segurança, preparação de lançamento
+
+--------------------------------------------------------------------------------
+12. PRÓXIMAS FASES — DETALHE IMEDIATO
+--------------------------------------------------------------------------------
+Fase 8b (UI de Perfis): construir os formulários reais de Perfil
+(Website + Mobile) contra o schema desta fase — o backend e os modelos
+já existem, falta só a camada de apresentação. Depois: módulo Quotes/Jobs
+(endpoints para enviar/aceitar orçamentos), ligado ao ServiceRequest já
+funcional.
+================================================================================
+
+
+--------------------------------------------------------------------------------
+13. NOTA DE ÂMBITO — FASE 8B (pedido cobria 10 prioridades, priorizado)
+--------------------------------------------------------------------------------
+O pedido original desta fase juntava Perfis completos (Web+Mobile),
+integração real do Cloudflare R2, extensão do matching, notificações,
+monetização, auditoria de responsividade a 9 breakpoints, evolução do
+design system e auditoria de performance — 10 frentes em simultâneo.
+Decisão consciente de priorização (documentada, não escondida):
+
+FEITO nesta fase:
+- Subcategorias no schema (ServiceCategory autorreferencial)
+- PricingService real (Strategy Pattern), comissão ativa, 3 estratégias
+  futuras já com o mesmo contrato (subscrição/créditos/destaque)
+- Perfil Cliente real no Website (nome/telefone ligados a /users/me)
+
+NÃO feito nesta fase (fica para as próximas, sem retrabalho):
+- Perfil Especialista completo (categorias/certificados/portefólio/
+  vídeos/estatísticas) — schema já suporta, falta só a UI
+- Perfis no Mobile (Cliente + Especialista)
+- Integração real do Cloudflare R2 (upload/thumbnails/URLs assinadas) —
+  ver STORAGE_ARCHITECTURE.md, continua só arquitetura
+- Extensão do matching por disponibilidade/documentos validados —
+  precisa do módulo Agenda (Fase 10) e de perfis com documentos
+  aprovados a sério, não só o schema
+- Auditoria de responsividade a 9 breakpoints — precisa de inspeção
+  visual real, que não consigo fazer sem acesso ao ecrã do utilizador
+- Evolução do Design System e auditoria de performance — adiadas para
+  não diluir esforço a meio de tantas frentes ao mesmo tempo
+
+
+--------------------------------------------------------------------------------
+14. NOTA DE ÂMBITO — FASE 8C
+--------------------------------------------------------------------------------
+Pedido cobria 9 prioridades (R2 completo, upload Website, upload Flutter,
+Perfil Especialista completo, Matching melhorado, Notificações, Monetização,
+auditoria de 9 breakpoints, Design System). Priorizado o que dá mais valor
+e reduz mais risco de retrabalho:
+
+FEITO (real, não só arquitetura):
+- StorageModule completo: upload, compressão+thumbnail (Sharp->WebP),
+  URLs públicas/assinadas, eliminação com verificação de dono
+- MatchingService extraído do RequestsService, com subcategorias
+- PricingService expandido (BOOST_LISTING, PURCHASE_VIRTUAL_CURRENCY)
+- Avatar do Perfil Cliente: único fluxo de upload ligado de ponta a
+  ponta (Website -> Backend -> R2 -> Prisma), prova de que a arquitetura
+  funciona antes de a replicar para todos os outros campos de imagem
+
+NÃO testado (por limitação do ambiente, não por escolha):
+- Nenhuma chamada real ao Cloudflare R2 foi executada — este ambiente
+  não tem acesso à rede nem credenciais. A validação foi estrutural
+  (imports, tipos, lógica revista manualmente).
+
+NÃO feito nesta fase (fica para a Fase 8d):
+- Perfil Especialista completo (Website) — depende do StorageModule
+  desta fase, que agora já existe
+- Upload no Flutter (ImageService continua stub)
+- Limpeza de ficheiros órfãos (esqueleto existe, lógica de deteção não)
+- Filtros de matching por localização/raio/disponibilidade (dependem de
+  PostGIS e do módulo Agenda, nenhum dos dois construído ainda)
+- Canais de notificação reais, auditoria de responsividade, evolução do
+  Design System — sem alterações nesta fase

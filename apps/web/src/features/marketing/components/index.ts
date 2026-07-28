@@ -1,0 +1,9 @@
+export { Header } from './header';
+export { Hero } from './hero';
+export { HowItWorks } from './how-it-works';
+export { PopularCategories } from './popular-categories';
+export { Benefits } from './benefits';
+export { Testimonials } from './testimonials';
+export { Faq } from './faq';
+export { FinalCta } from './final-cta';
+export { Footer } from './footer';

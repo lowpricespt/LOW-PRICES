@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Superfícies: branco dominante + cinza muito claro para secções alternadas */
+    --background: 0 0% 100%;
+    --foreground: 220 14% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 13%;
+
+    /* Laranja de marca — usar apenas em CTAs, links principais, ícones importantes e estados ativos */
+    --primary: 16 100% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 20% 97%;
+    --secondary-foreground: 220 14% 13%;
+
+    --muted: 220 20% 97%;
+    --muted-foreground: 220 9% 46%;
+
+    /* Azul — reservado a informação, mapas e elementos puramente informativos */
+    --accent: 221 83% 58%;
+    --accent-foreground: 0 0% 100%;
+
+    --success: 142 71% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 16% 91%;
+    --input: 220 16% 91%;
+    --ring: 16 100% 56%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Cinza muito escuro — nunca preto absoluto */
+    --background: 220 9% 10%;
+    --foreground: 220 14% 96%;
+
+    --card: 220 8% 14%;
+    --card-foreground: 220 14% 96%;
+
+    --primary: 16 100% 60%;
+    --primary-foreground: 220 9% 10%;
+
+    --secondary: 220 8% 18%;
+    --secondary-foreground: 220 14% 96%;
+
+    --muted: 220 8% 18%;
+    --muted-foreground: 220 9% 65%;
+
+    --accent: 221 83% 65%;
+    --accent-foreground: 220 9% 10%;
+
+    --success: 142 60% 45%;
+    --success-foreground: 220 9% 10%;
+
+    --destructive: 0 63% 52%;
+    --destructive-foreground: 220 14% 96%;
+
+    --border: 220 8% 22%;
+    --input: 220 8% 22%;
+    --ring: 16 100% 60%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,67 @@
+name: low_prices
+description: "Low Prices — encontra profissionais de confiança perto de ti."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Gestão de estado — ver 00-FUNDACAO-TECNICA.md, secção 4 (Flutter)
+  flutter_riverpod: ^2.5.1
+
+  # Navegação
+  go_router: ^14.2.0
+
+  # Cliente HTTP (liga-se à mesma API NestJS do website)
+  dio: ^5.5.0
+
+  # Tokens de sessão (JWT + refresh token)
+  flutter_secure_storage: ^9.2.2
+
+  # Preferências não sensíveis (ex.: tema escolhido)
+  shared_preferences: ^2.3.2
+
+  # Tipografia — mesma dupla do website (Inter + Lexend)
+  google_fonts: ^6.2.1
+
+  # Ícones/ilustrações vetoriais
+  flutter_svg: ^2.0.10+1
+
+  # Imagens de rede com cache (fotos de perfil/trabalhos)
+  cached_network_image: ^3.4.1
+
+  # Modelos imutáveis + (de)serialização JSON das respostas da API
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Estado de ligação à internet — sem configuração nativa necessária
+  connectivity_plus: ^6.0.5
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  build_runner: ^2.4.12
+  freezed: ^2.5.7
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material-design: true
+  # assets:
+  #   - assets/images/
+
+# path_provider_android >= 2.3.0 migrou para o pacote `jni`, cujo
+# build.gradle (versão 1.0.1) tem um bug de compatibilidade com o
+# Kotlin Gradle Plugin gerado pelo `flutter create` atual — dá
+# "Could not find method kotlin() for arguments ... on project ':jni'".
+# Confirmado em https://pub.dev/packages/path_provider_android/changelog:
+# 2.2.23 é a última versão antes dessa migração. Fixamos aqui até o
+# pacote `jni` publicar uma correção — nesse momento, remover este bloco.
+dependency_overrides:
+  path_provider_android: 2.2.23

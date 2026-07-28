@@ -1,0 +1,404 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CLIENT
+  PROFESSIONAL
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  phone        String?    @unique
+  /// Preparado para o futuro (perfis públicos, menções); não usado ainda no login.
+  username     String?    @unique
+  name         String
+  /// Opcional: contas criadas via Google Login não têm password nossa.
+  passwordHash String?
+  /// ID único do Google (campo "sub" do token) — presente só em contas
+  /// criadas/ligadas via Login com Google.
+  googleId     String?    @unique
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  clientProfile        ClientProfile?
+  professionalProfile  ProfessionalProfile?
+  sessions             Session[]
+  verificationTokens   VerificationToken[]
+  passwordResetTokens  PasswordResetToken[]
+  auditLogs            AuditLog[]
+}
+
+model ClientProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  avatarUrl String? // placeholder até a Fase de Storage existir
+
+  addresses     Address[]
+  favorites     Favorite[]
+  serviceRequests ServiceRequest[]
+  notificationPreference NotificationPreference?
+}
+
+model ProfessionalProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  avatarUrl          String?  // placeholder até a Fase de Storage existir
+  bio                String?
+  serviceRadiusKm    Int      @default(15)
+  verificationStatus String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  isFeatured         Boolean  @default(false) // ver docs/business/BUSINESS_MODEL.md, secção 4
+  featuredUntil      DateTime?
+  subscriptionTier   String?  // null = plano gratuito; ver BUSINESS_MODEL.md
+  /// Controla o bloqueio de informação: um profissional sem acesso à
+  /// área ativo vê os pedidos com a localização exata OCULTA (só
+  /// categoria/descrição/urgência). Fica true quando adere a um dos
+  /// planos (100€/mês ou 30€/semana — ver AreaAccessPricingStrategy) e
+  /// falso quando a subscrição expira. Atualizado pelo webhook do
+  /// Stripe assim que os pagamentos estiverem ligados (Fase 13); por
+  /// agora, ativado através de um endpoint de simulação — ver
+  /// PricingController.
+  hasAreaAccess       Boolean   @default(false)
+  areaAccessExpiresAt DateTime?
+  createdAt          DateTime @default(now())
+
+  categories    ProfessionalCategory[]
+  addresses     Address[]
+  documents     Document[]
+  portfolioItems PortfolioItem[]
+  quotes        Quote[]
+  requestMatches ServiceRequestMatch[]
+  notificationPreference NotificationPreference?
+
+  @@index([verificationStatus])
+}
+
+/// Liga um profissional a várias categorias (N:N) — necessário desde já
+/// porque o matching de notificações (ver NOTIFICATIONS_ARCHITECTURE.md)
+/// depende disto.
+model ProfessionalCategory {
+  professionalProfileId String
+  professionalProfile   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  categoryId             String
+  category                ServiceCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([professionalProfileId, categoryId])
+}
+
+/// Moradas de Cliente e Profissional partilham o mesmo modelo — mesma
+/// forma de dados, só o dono (clientProfileId XOR professionalProfileId)
+/// muda. Evita duas tabelas quase idênticas.
+model Address {
+  id                    String                @id @default(uuid())
+  clientProfileId       String?
+  clientProfile         ClientProfile?        @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  professionalProfileId String?
+  professionalProfile   ProfessionalProfile?  @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  label      String  // "Casa", "Trabalho", etc.
+  line1      String
+  line2      String?
+  postalCode String
+  city       String
+  /// Coordenadas guardadas já em preparação para PostGIS (Fase de
+  /// migração dedicada, quando o matching por distância for ativado).
+  latitude   Float?
+  longitude  Float?
+  isDefault  Boolean @default(false)
+
+  @@index([clientProfileId])
+  @@index([professionalProfileId])
+}
+
+/// Certificados e documentos de verificação — mesma tabela (o que
+/// distingue um do outro é o `type`), com URL placeholder até a Fase de
+/// Storage existir.
+enum DocumentType {
+  IDENTITY
+  PROOF_OF_ACTIVITY
+  CERTIFICATE
+}
+
+model Document {
+  id                     String       @id @default(uuid())
+  professionalProfileId  String
+  professionalProfile    ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  type                   DocumentType
+  fileUrl                String?      // null até haver upload real (Fase de Storage)
+  status                 String       @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  uploadedAt             DateTime     @default(now())
+  reviewedAt             DateTime?
+
+  @@index([professionalProfileId])
+}
+
+model PortfolioItem {
+  id                    String   @id @default(uuid())
+  professionalProfileId String
+  professionalProfile   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  imageUrl              String?  // placeholder até a Fase de Storage
+  caption               String?
+  createdAt             DateTime @default(now())
+
+  @@index([professionalProfileId])
+}
+
+model Favorite {
+  id                     String   @id @default(uuid())
+  clientProfileId        String
+  clientProfile          ClientProfile @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  professionalProfileId  String
+  createdAt              DateTime @default(now())
+
+  @@unique([clientProfileId, professionalProfileId])
+}
+
+/// Um único modelo de preferências, partilhado por Cliente e
+/// Profissional (dono é clientProfileId XOR professionalProfileId) —
+/// consumido pelo NotificationChannelSender (ver NOTIFICATIONS_ARCHITECTURE.md)
+/// para decidir que canais usar por utilizador.
+model NotificationPreference {
+  id                     String   @id @default(uuid())
+  clientProfileId        String?  @unique
+  clientProfile          ClientProfile?       @relation(fields: [clientProfileId], references: [id], onDelete: Cascade)
+  professionalProfileId  String?  @unique
+  professionalProfile    ProfessionalProfile? @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  pushEnabled  Boolean @default(true)
+  emailEnabled Boolean @default(true)
+  smsEnabled   Boolean @default(false)
+}
+
+model ServiceCategory {
+  id       String  @id @default(uuid())
+  name     String
+  slug     String  @unique
+  icon     String?
+  parentId String?
+  parent   ServiceCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children ServiceCategory[] @relation("CategoryHierarchy")
+
+  professionalLinks ProfessionalCategory[]
+  serviceRequests   ServiceRequest[]
+
+  @@index([parentId])
+}
+
+/// Representa um dispositivo/login ativo. Uma sessão tem exatamente um
+/// refresh token válido de cada vez — a rotação substitui o token mas
+/// mantém a mesma sessão (para "Terminar sessão neste dispositivo" fazer
+/// sentido do ponto de vista do utilizador).
+model Session {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime  @default(now())
+  revokedAt    DateTime?
+  revokedReason String?
+
+  refreshTokens RefreshToken[]
+
+  @@index([userId])
+}
+
+/// Nunca guardamos o refresh token em texto simples — apenas o hash
+/// (SHA-256). Cada rotação cria uma nova linha e marca a anterior como
+/// substituída; se um token já substituído for reutilizado, é sinal de
+/// roubo de token e todas as sessões do utilizador são revogadas.
+model RefreshToken {
+  id            String    @id @default(uuid())
+  sessionId     String
+  session       Session   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  tokenHash     String    @unique
+  expiresAt     DateTime
+  createdAt     DateTime  @default(now())
+  revokedAt     DateTime?
+  replacedById  String?   @unique
+
+  @@index([sessionId])
+}
+
+enum VerificationTokenType {
+  EMAIL_VERIFICATION
+}
+
+model VerificationToken {
+  id        String                @id @default(uuid())
+  userId    String
+  user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      VerificationTokenType
+  tokenHash String                @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime              @default(now())
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+/// Auditoria de ações sensíveis (login, logout, registo, deteção de reuso
+/// de token, etc.). userId fica nulo quando a ação não tem um ator
+/// identificado (ex.: tentativa de login com email inexistente).
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+}
+
+// ============================================================================
+// SISTEMA DE SERVIÇOS (Fase 9) — núcleo da plataforma.
+// Ciclo de vida completo documentado em
+// docs/architecture/CORE_PLATFORM_ARCHITECTURE.md, secção "Ciclo de Vida
+// de um Serviço". Resumo dos 3 modelos:
+//
+//   ServiceRequest — o pedido do cliente (1 por pedido)
+//   Quote          — uma proposta de um profissional a um pedido (N por pedido)
+//   Job            — o trabalho real, criado só quando uma Quote é aceite (1 por pedido aceite)
+// ============================================================================
+
+enum ServiceRequestStatus {
+  DRAFT          /// "Novo" — ainda a ser preenchido no wizard, não publicado
+  PUBLISHED      /// "Publicado" — visível aos profissionais elegíveis
+  IN_NEGOTIATION /// tem pelo menos uma Quote enviada, ainda sem aceitar nenhuma
+  SCHEDULED      /// uma Quote foi aceite → existe um Job agendado
+  COMPLETED      /// o Job ligado foi concluído
+  CANCELLED      /// cancelado pelo cliente antes de qualquer aceitação
+  ARCHIVED       /// arquivado (concluído/cancelado há muito tempo, fora das listagens ativas)
+}
+
+model ServiceRequest {
+  id          String               @id @default(uuid())
+  clientId    String
+  client      ClientProfile        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    ServiceCategory      @relation(fields: [categoryId], references: [id])
+  status      ServiceRequestStatus @default(DRAFT)
+
+  description String
+  photoUrls   String[]             @default([]) // placeholders até a Fase de Storage
+  location    String
+  latitude    Float?
+  longitude   Float?
+  urgency     String               // "hoje" | "esta-semana" | "este-mes" | "sem-urgencia"
+  budget      Decimal?             @db.Decimal(10, 2)
+
+  publishedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  quotes         Quote[]
+  job            Job?
+  professionalMatches ServiceRequestMatch[]
+
+  @@index([clientId])
+  @@index([categoryId])
+  @@index([status])
+}
+
+/// Regista, por profissional elegível, se/quando foi notificado e se
+/// viu o pedido — é o que dá significado real aos estados "Notificado"
+/// e "Visualizado" pedidos, sem os tornar um estado global do pedido
+/// (um pedido pode estar "visualizado" para o Profissional A e ainda
+/// "só notificado" para o Profissional B ao mesmo tempo).
+model ServiceRequestMatch {
+  id                     String    @id @default(uuid())
+  serviceRequestId       String
+  serviceRequest         ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  professionalProfileId  String
+  professionalProfile    ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+
+  notifiedAt DateTime?
+  viewedAt   DateTime?
+
+  @@unique([serviceRequestId, professionalProfileId])
+  @@index([professionalProfileId])
+}
+
+enum QuoteStatus {
+  SENT      /// "Proposta enviada"
+  ACCEPTED  /// "Proposta aceite" — cria um Job
+  REJECTED  /// recusada explicitamente pelo cliente
+  WITHDRAWN /// retirada pelo próprio profissional
+}
+
+model Quote {
+  id                    String       @id @default(uuid())
+  serviceRequestId      String
+  serviceRequest        ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  professionalProfileId String
+  professionalProfile   ProfessionalProfile @relation(fields: [professionalProfileId], references: [id], onDelete: Cascade)
+  status                QuoteStatus  @default(SENT)
+
+  price       Decimal  @db.Decimal(10, 2)
+  message     String?
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+
+  job Job?
+
+  @@index([serviceRequestId])
+  @@index([professionalProfileId])
+}
+
+enum JobStatus {
+  SCHEDULED   /// agendado, ainda não começou
+  IN_PROGRESS /// "Em execução"
+  COMPLETED   /// "Concluído"
+  CANCELLED
+}
+
+model Job {
+  id               String    @id @default(uuid())
+  serviceRequestId String    @unique
+  serviceRequest   ServiceRequest @relation(fields: [serviceRequestId], references: [id], onDelete: Cascade)
+  quoteId          String    @unique
+  quote            Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  status           JobStatus @default(SCHEDULED)
+
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  completedAt    DateTime?
+  cancelledAt    DateTime?
+
+  @@index([status])
+}

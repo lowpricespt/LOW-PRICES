@@ -42,7 +42,12 @@ export class RequestsController {
     if (professional.categoryIds.length === 0) {
       return { items: [], page: query.page, pageSize: query.pageSize, total: 0, isLocationUnlocked: false };
     }
-    return this.requestsService.findAvailable(professional.categoryIds, professional.hasActiveAreaAccess, query);
+    return this.requestsService.findAvailable(
+      professional.categoryIds,
+      professional.id,
+      professional.hasActiveAreaAccess,
+      query,
+    );
   }
 
   @Get(':id')

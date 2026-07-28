@@ -25,7 +25,7 @@ export class RequestsRepository {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.serviceRequest.findMany({
         where,
-        include: WITH_CATEGORY,
+        include: { ...WITH_CATEGORY, _count: { select: { quotes: true } } },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
@@ -40,8 +40,18 @@ export class RequestsRepository {
    * categoria(s) que o profissional atende. O filtro por localização/raio
    * (PostGIS) entra quando a migração espacial for ativada — por agora
    * filtra só por categoria, o resto fica documentado como próximo passo.
+   *
+   * Inclui `quotes` filtrado pelo PRÓPRIO profissional (no máximo 1,
+   * @@unique([serviceRequestId, professionalProfileId]) não existe mas a
+   * regra de negócio em QuotesService impede duplicados) — permite à UI
+   * saber se já respondeu a este pedido sem uma query extra por item.
    */
-  async findAvailableForProfessional(categoryIds: string[], page: number, pageSize: number) {
+  async findAvailableForProfessional(
+    categoryIds: string[],
+    professionalProfileId: string,
+    page: number,
+    pageSize: number,
+  ) {
     const where: Prisma.ServiceRequestWhereInput = {
       status: 'PUBLISHED',
       categoryId: { in: categoryIds },
@@ -49,7 +59,11 @@ export class RequestsRepository {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.serviceRequest.findMany({
         where,
-        include: WITH_CATEGORY,
+        include: {
+          ...WITH_CATEGORY,
+          _count: { select: { quotes: true } },
+          quotes: { where: { professionalProfileId } },
+        },
         orderBy: { publishedAt: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,

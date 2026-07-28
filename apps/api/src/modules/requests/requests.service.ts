@@ -147,9 +147,15 @@ export class RequestsService {
     };
   }
 
-  async findAvailable(categoryIds: string[], hasActiveAreaAccess: boolean, query: ListRequestsQueryDto) {
+  async findAvailable(
+    categoryIds: string[],
+    professionalProfileId: string,
+    hasActiveAreaAccess: boolean,
+    query: ListRequestsQueryDto,
+  ) {
     const { items, total } = await this.requestsRepository.findAvailableForProfessional(
       categoryIds,
+      professionalProfileId,
       query.page,
       query.pageSize,
     );

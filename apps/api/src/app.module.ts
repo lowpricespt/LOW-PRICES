@@ -18,6 +18,10 @@ import { AdminModule } from './modules/admin/admin.module';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
+import { FavoritesModule } from './modules/favorites/favorites.module';
+import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
+import { AddressesModule } from './modules/addresses/addresses.module';
+import { MessagesModule } from './modules/messages/messages.module';
 
 @Module({
   imports: [
@@ -43,6 +47,10 @@ import { AvailabilityModule } from './modules/availability/availability.module';
     CategoriesModule,
     ReviewsModule,
     AvailabilityModule,
+    FavoritesModule,
+    NotificationPreferencesModule,
+    AddressesModule,
+    MessagesModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

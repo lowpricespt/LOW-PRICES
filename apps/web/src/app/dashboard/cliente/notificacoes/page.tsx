@@ -1,12 +1,11 @@
-import { Bell } from 'lucide-react';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
-import { StubSection } from '@/features/dashboard/components/stub-section';
+import { NotificationPreferencesSection } from '@/features/dashboard/components/notification-preferences-section';
 
 export default function ClientNotificationsPage() {
   return (
     <div>
-      <DashboardPageHeader title="Notificações" />
-      <StubSection title="Notificações" icon={Bell} />
+      <DashboardPageHeader title="Notificações" description="Escolhe como queres ser avisado." />
+      <NotificationPreferencesSection />
     </div>
   );
 }

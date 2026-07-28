@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { MapPin, Bell, Shield, Heart, History } from 'lucide-react';
+import Link from 'next/link';
+import { MapPin, Bell, Shield, Heart, History, ChevronRight } from 'lucide-react';
 import { Button, Input, Card, AvatarUpload } from '@/components/ui';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
 import { useAuth } from '@/providers/auth-provider';
 import { updateProfileRequest } from '@/features/profile/services/profile-api';
 
 /**
- * Secções REAIS (ligadas ao backend): nome, telefone, fotografia
- * (upload real via Cloudflare R2 — ver docs/architecture/UPLOAD_ARCHITECTURE.md).
- * Secções ainda visuais: moradas, notificações, segurança, favoritos,
- * histórico — marcadas explicitamente abaixo, não escondido.
+ * Nome, telefone e fotografia (upload real via Cloudflare R2 — ver
+ * docs/architecture/UPLOAD_ARCHITECTURE.md) editam-se diretamente aqui.
+ * Moradas, Notificações, Segurança, Favoritos e Histórico são todas
+ * páginas reais próprias — os cards abaixo só linkam para elas.
  */
 export default function ClientProfilePage() {
   const { user } = useAuth();
@@ -89,19 +90,21 @@ export default function ClientProfilePage() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {[
-          { icon: MapPin, label: 'Moradas' },
-          { icon: Bell, label: 'Notificações' },
-          { icon: Shield, label: 'Segurança e password' },
-          { icon: Heart, label: 'Favoritos' },
-          { icon: History, label: 'Histórico de pedidos' },
+          { icon: MapPin, label: 'Moradas', href: '/dashboard/cliente/moradas' },
+          { icon: Bell, label: 'Notificações', href: '/dashboard/cliente/notificacoes' },
+          { icon: Shield, label: 'Segurança e password', href: '/dashboard/cliente/definicoes' },
+          { icon: Heart, label: 'Favoritos', href: '/dashboard/cliente/favoritos' },
+          { icon: History, label: 'Histórico de pedidos', href: '/dashboard/cliente/historico' },
         ].map((item) => (
-          <Card key={item.label} className="flex items-center justify-between p-4">
-            <span className="flex items-center gap-3 text-sm font-medium">
-              <item.icon className="size-4 text-muted-foreground" />
-              {item.label}
-            </span>
-            <span className="text-xs text-muted-foreground">Em breve</span>
-          </Card>
+          <Link key={item.label} href={item.href}>
+            <Card className="flex items-center justify-between p-4 transition-colors hover:bg-accent">
+              <span className="flex items-center gap-3 text-sm font-medium">
+                <item.icon className="size-4 text-muted-foreground" />
+                {item.label}
+              </span>
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

@@ -1,15 +1,10 @@
-import { IsString, Length, Matches } from 'class-validator';
-
-const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+import { IsString } from 'class-validator';
+import { IsStrongPassword } from './password-field.decorator';
 
 export class ResetPasswordDto {
   @IsString()
   token!: string;
 
-  @IsString()
-  @Length(8, 72, { message: 'A palavra-passe deve ter entre 8 e 72 caracteres.' })
-  @Matches(PASSWORD_REGEX, {
-    message: 'A palavra-passe deve conter maiúsculas, minúsculas e pelo menos um número.',
-  })
+  @IsStrongPassword()
   newPassword!: string;
 }

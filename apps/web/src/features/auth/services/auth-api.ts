@@ -50,3 +50,15 @@ export async function forgotPasswordRequest(email: string): Promise<void> {
 export async function resetPasswordRequest(token: string, newPassword: string): Promise<void> {
   await apiClient.post('/auth/reset-password', { token, newPassword });
 }
+
+export async function changePasswordRequest(currentPassword: string, newPassword: string): Promise<void> {
+  await apiClient.patch('/auth/change-password', { currentPassword, newPassword });
+}
+
+export async function requestEmailChangeRequest(newEmail: string, currentPassword: string): Promise<void> {
+  await apiClient.post('/auth/change-email', { newEmail, currentPassword });
+}
+
+export async function confirmEmailChangeRequest(token: string): Promise<void> {
+  await apiClient.post('/auth/confirm-email-change', { token });
+}

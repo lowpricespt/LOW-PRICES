@@ -1,12 +1,11 @@
-import { Settings } from 'lucide-react';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
-import { StubSection } from '@/features/dashboard/components/stub-section';
+import { AccountSecuritySection } from '@/features/dashboard/components/account-security-section';
 
 export default function ProfessionalSettingsPage() {
   return (
     <div>
-      <DashboardPageHeader title="Definições" />
-      <StubSection title="Definições" icon={Settings} />
+      <DashboardPageHeader title="Definições" description="Segurança da conta: palavra-passe, email e privacidade." />
+      <AccountSecuritySection />
     </div>
   );
 }

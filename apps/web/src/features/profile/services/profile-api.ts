@@ -9,3 +9,7 @@ export async function updateProfileRequest(params: {
   const { data } = await apiClient.patch<AuthUser>('/users/me', params);
   return data;
 }
+
+export async function deleteAccountRequest(): Promise<void> {
+  await apiClient.delete('/users/me');
+}

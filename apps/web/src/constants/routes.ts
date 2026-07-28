@@ -8,7 +8,7 @@ export const PUBLIC_ROUTES = ['/', '/login', '/registo', '/categorias', '/sobre'
  * Rotas que exigem sessão iniciada.
  * Serão validadas pelo middleware assim que o AuthProvider real existir (Fase 3).
  */
-export const PRIVATE_ROUTE_PREFIXES = ['/conta', '/pedidos', '/mensagens', '/definicoes'] as const;
+export const PRIVATE_ROUTE_PREFIXES = ['/dashboard', '/registo/profissional/categorias'] as const;
 
 /**
  * Rotas exclusivas do painel de administração.

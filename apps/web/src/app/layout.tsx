@@ -17,7 +17,7 @@ const fontDisplay = Lexend({
   weight: ['500', '600', '700'],
 });
 
-const siteUrl = 'https://lowprices.pt';
+const siteUrl = appConfig.siteUrl;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

@@ -253,6 +253,10 @@ model VerificationToken {
   user      User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      VerificationTokenType
   tokenHash String                @unique
+  /// Só usado quando type = EMAIL_VERIFICATION originado por um pedido de
+  /// "alterar email": guarda o novo email pretendido, que só substitui
+  /// User.email depois de o link ser confirmado (nunca antes).
+  newEmail  String?
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime              @default(now())

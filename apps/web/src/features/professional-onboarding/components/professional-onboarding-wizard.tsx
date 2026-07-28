@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { WizardShell } from '@/components/wizard';
 import { useAuth } from '@/providers/auth-provider';
 import type { ApiError } from '@/services/api';
+import { updateProfessionalCategories } from '../services/professional-onboarding-api';
 import { PROFESSIONAL_ONBOARDING_STEPS } from '../constants/steps';
 import { StepAccount } from './steps/step-account';
 import { StepCategories } from './steps/step-categories';
@@ -26,13 +27,18 @@ export function ProfessionalOnboardingWizard() {
   const [isSubmittingAccount, setIsSubmittingAccount] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
 
-  // Só o Passo 1 (Conta) está ligado ao backend nesta fase — é o único
-  // com dados que já têm um endpoint pronto (registo). Os restantes
-  // passos (categorias, documentos, portefólio, etc.) continuam visuais
+  // Passo 1 (Conta) e Passo 2 (Categorias) já estão ligados ao backend —
+  // são os únicos com endpoint pronto e cujo dado é indispensável para o
+  // matching funcionar (ver MatchingService). Os restantes passos
+  // (localização, raio, documentos, portefólio, etc.) continuam visuais
   // até o Perfil do Especialista ser construído por completo.
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+  const [isSubmittingCategories, setIsSubmittingCategories] = useState(false);
 
   if (isSubmitted) {
     return <OnboardingSubmitted />;
@@ -40,6 +46,13 @@ export function ProfessionalOnboardingWizard() {
 
   const isLastStep = currentStepIndex === lastStepIndex;
   const isAccountStep = currentStepIndex === 0;
+  const isCategoriesStep = currentStepIndex === 1;
+
+  function toggleCategory(categoryId: string) {
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId],
+    );
+  }
 
   async function handleNext() {
     if (isAccountStep) {
@@ -58,6 +71,29 @@ export function ProfessionalOnboardingWizard() {
         setAccountError((err as ApiError).message ?? 'Não foi possível criar a conta. Tenta novamente.');
       } finally {
         setIsSubmittingAccount(false);
+      }
+      return;
+    }
+
+    if (isCategoriesStep) {
+      setCategoriesError(null);
+
+      if (selectedCategories.length === 0) {
+        setCategoriesError('Escolhe pelo menos uma categoria para continuares — é o que decide que pedidos vês.');
+        return;
+      }
+
+      setIsSubmittingCategories(true);
+      try {
+        // Grava já (não espera pelo fim do wizard) — se a pessoa abandonar
+        // a meio dos passos seguintes (ainda visuais), as categorias já
+        // ficam guardadas a sério, não se perdem.
+        await updateProfessionalCategories(selectedCategories);
+        setCurrentStepIndex((index) => Math.min(index + 1, lastStepIndex));
+      } catch (err) {
+        setCategoriesError((err as ApiError).message ?? 'Não foi possível guardar as categorias. Tenta novamente.');
+      } finally {
+        setIsSubmittingCategories(false);
       }
       return;
     }
@@ -82,7 +118,7 @@ export function ProfessionalOnboardingWizard() {
       onNext={handleNext}
       exitHref="/"
       nextLabel={isLastStep ? 'Concluir registo' : 'Continuar'}
-      isSubmitting={isSubmittingAccount}
+      isSubmitting={isSubmittingAccount || isSubmittingCategories}
     >
       {isAccountStep && (
         <StepAccount
@@ -95,7 +131,9 @@ export function ProfessionalOnboardingWizard() {
           error={accountError}
         />
       )}
-      {currentStepIndex === 1 && <StepCategories />}
+      {isCategoriesStep && (
+        <StepCategories selected={selectedCategories} onToggle={toggleCategory} error={categoriesError} />
+      )}
       {currentStepIndex === 2 && <StepRadius />}
       {currentStepIndex === 3 && <StepLocation />}
       {currentStepIndex === 4 && <StepPhoto />}

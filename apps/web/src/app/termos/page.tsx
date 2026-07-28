@@ -16,15 +16,20 @@ export default function TermsPage() {
         Portugal (Código Civil, Lei de Defesa do Consumidor, RGPD, Lei do Comércio Eletrónico — Decreto-Lei
         n.º 7/2004). <strong className="text-foreground">Não substitui aconselhamento jurídico</strong> — deve
         ser revisto por um advogado antes do lançamento público, e os campos entre parênteses retos têm de
-        ser preenchidos com os dados reais da empresa.
+        ser preenchidos com os dados reais. A plataforma opera, nesta fase, como atividade de pessoa singular
+        (não como empresa constituída) — <strong className="text-foreground">recomenda-se vivamente abrir
+        atividade como trabalhador independente nas Finanças</strong> (portal das Finanças, gratuito e online)
+        antes de cobrar qualquer valor real a clientes ou profissionais, para poder emitir fatura-recibo e
+        cumprir as obrigações fiscais. Sem isso, qualquer cobrança real é irregular perante a Autoridade
+        Tributária.
       </div>
 
       <div className="mt-8 max-w-none space-y-6 text-sm leading-relaxed text-foreground [&_a]:text-primary [&_a]:underline [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:text-muted-foreground [&_ul]:space-y-1">
         <h2>1. Quem somos</h2>
         <p>
-          A Low Prices é operada por [Nome da empresa], com sede em [morada], número de identificação fiscal
-          [NIF], registada na Conservatória do Registo Comercial de [localidade] sob o número [número de
-          matrícula]. Contacto: [email de contacto].
+          A Low Prices é operada por [Nome completo], contribuinte fiscal n.º [NIF], com domicílio fiscal em
+          [morada], a operar como trabalhador independente (atividade aberta nas Finanças). Contacto: [email
+          de contacto].
         </p>
 
         <h2>2. O que é a Low Prices</h2>

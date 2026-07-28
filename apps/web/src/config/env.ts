@@ -10,6 +10,11 @@ const envSchema = z.object({
     message: 'NEXT_PUBLIC_API_URL tem de ser um URL válido (ex.: http://localhost:3000)',
   }),
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().optional().default(''),
+  /// Opcional de propósito: enquanto não houver domínio próprio, o site
+  /// vive em *.vercel.app e o metadata/sitemap/robots.txt usam esse URL
+  /// por omissão (ver config/index.ts). Assim que houver domínio, basta
+  /// definir esta variável no Vercel — nenhum ficheiro precisa de mudar.
+  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 
@@ -19,6 +24,7 @@ function loadEnv(): Env {
   const parsed = envSchema.safeParse({
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
     NODE_ENV: process.env.NODE_ENV,
   });
 

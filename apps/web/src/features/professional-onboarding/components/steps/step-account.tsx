@@ -1,4 +1,4 @@
-import { Input } from '@/components/ui';
+import { Input, GoogleLoginButton } from '@/components/ui';
 
 export interface StepAccountProps {
   name: string;
@@ -25,6 +25,16 @@ export function StepAccount({
         Cria a tua conta de profissional
       </h1>
       <p className="mt-2 text-muted-foreground">Vais usá-la para receber e responder a pedidos.</p>
+
+      <div className="mt-6">
+        <GoogleLoginButton role="PROFESSIONAL" />
+      </div>
+
+      <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        ou com email
+        <span className="h-px flex-1 bg-border" />
+      </div>
 
       {error ? (
         <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Req, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { Throttle } from '@nestjs/throttler';
@@ -14,6 +14,9 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ChangeEmailDto } from './dto/change-email.dto';
+import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
 
 const REFRESH_COOKIE_NAME = 'lp_refresh_token';
 
@@ -70,7 +73,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logout(user.sessionId, user.userId, this.buildContext(req));
-    res.clearCookie(REFRESH_COOKIE_NAME);
+    this.clearRefreshCookie(res);
   }
 
   @Post('logout-all')
@@ -81,7 +84,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     await this.authService.logoutAll(user.userId, this.buildContext(req));
-    res.clearCookie(REFRESH_COOKIE_NAME);
+    this.clearRefreshCookie(res);
   }
 
   @Public()
@@ -135,14 +138,74 @@ export class AuthController {
     await this.authService.resetPassword(dto, this.buildContext(req));
   }
 
+  @Patch('change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async changePassword(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
+  ) {
+    await this.authService.changePassword(user.userId, user.sessionId, dto, this.buildContext(req));
+  }
+
+  @Post('change-email')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async requestEmailChange(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangeEmailDto, @Req() req: Request) {
+    await this.authService.requestEmailChange(user.userId, dto, this.buildContext(req));
+  }
+
+  @Public()
+  @Post('confirm-email-change')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async confirmEmailChange(@Body() dto: ConfirmEmailChangeDto, @Req() req: Request) {
+    await this.authService.confirmEmailChange(dto.token, this.buildContext(req));
+  }
+
+  /**
+   * BUG CRÍTICO corrigido aqui: frontend (Vercel) e API (Railway) vivem em
+   * domínios completamente diferentes — isto é um pedido CROSS-SITE, não
+   * apenas cross-origin. Um cookie `SameSite=Lax` NUNCA é enviado num
+   * pedido cross-site feito por JS (fetch/XHR), seja qual for o método —
+   * `Lax` só permite o cookie em navegações de topo (ex: clicar num link).
+   * Isto significa que, em produção, o cookie `lp_refresh_token` nunca
+   * chegava à API na chamada de refresh silencioso, e a sessão morria
+   * sempre que o access token expirava (15 min) ou a página recarregava —
+   * apesar de todo o mecanismo de rotação de tokens estar correto.
+   *
+   * A correção correta (não um hack) é `SameSite=None; Secure` — o padrão
+   * standard para cookies de sessão partilhados entre frontend e API em
+   * domínios distintos (ex: Auth0, Supabase). Isto só é seguro porque:
+   *  1. O cookie continua `httpOnly` (inacessível a JS/XSS).
+   *  2. `enableCors` em main.ts usa uma allow-list explícita de origens
+   *     (nunca `*`) — um pedido cross-site de um domínio não autorizado
+   *     falha no preflight CORS antes de o pedido POST real ser enviado.
+   *  3. `Secure` obriga HTTPS, que já é garantido tanto por Vercel como
+   *     por Railway.
+   */
   private setRefreshCookie(res: Response, token: string) {
     const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
     res.cookie(REFRESH_COOKIE_NAME, token, {
       httpOnly: true,
       secure: isProduction,
-      sameSite: 'lax',
+      sameSite: isProduction ? 'none' : 'lax',
       path: '/auth',
       maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+  }
+
+  // clearCookie precisa dos MESMOS atributos (path/sameSite/secure) com que
+  // o cookie foi definido — caso contrário alguns browsers (Chrome incluído)
+  // ignoram o pedido de remoção silenciosamente.
+  private clearRefreshCookie(res: Response) {
+    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+    res.clearCookie(REFRESH_COOKIE_NAME, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      path: '/auth',
     });
   }
 

@@ -35,12 +35,19 @@ export class TokenService {
   }
 
   /**
-   * Mesma forma do refresh token (opaco, 256 bits, só o hash em BD) —
-   * usado para o link de recuperação de password.
+   * Gerador genérico de token opaco (256 bits, só o hash guardado em BD)
+   * — base partilhada por qualquer fluxo de "link com token de uso único"
+   * (recuperação de password, verificação de email, etc.), para nunca
+   * duplicar esta lógica em cada novo fluxo.
    */
-  generatePasswordResetToken(): { raw: string; hash: string } {
+  generateOpaqueToken(): { raw: string; hash: string } {
     const raw = randomBytes(32).toString('hex');
     return { raw, hash: createHash('sha256').update(raw).digest('hex') };
+  }
+
+  /** Mesma forma do refresh token — usado para o link de recuperação de password. */
+  generatePasswordResetToken(): { raw: string; hash: string } {
+    return this.generateOpaqueToken();
   }
 
   getRefreshTokenTtlMs(): number {

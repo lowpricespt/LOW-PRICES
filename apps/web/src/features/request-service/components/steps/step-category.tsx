@@ -1,12 +1,13 @@
 'use client';
 
-import { SERVICE_CATEGORIES } from '@/constants/categories';
+import { useServiceCategories } from '@/hooks/use-service-categories';
 import { cn } from '@/lib/utils';
 import { useRequestServiceStore } from '../../store/use-request-service-store';
 
 export function StepCategory() {
   const categoryId = useRequestServiceStore((state) => state.formData.categoryId);
   const updateFormData = useRequestServiceStore((state) => state.updateFormData);
+  const { categories, isLoading } = useServiceCategories();
 
   return (
     <div>
@@ -15,8 +16,10 @@ export function StepCategory() {
       </h1>
       <p className="mt-2 text-muted-foreground">Escolhe a categoria que melhor descreve o teu pedido.</p>
 
+      {isLoading && <p className="mt-8 text-sm text-muted-foreground">A carregar categorias…</p>}
+
       <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {SERVICE_CATEGORIES.map((category) => {
+        {categories.map((category) => {
           const isSelected = categoryId === category.id;
           return (
             <button

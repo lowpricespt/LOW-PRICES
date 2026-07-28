@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
+import { appConfig } from '@/config';
 
-const siteUrl = 'https://lowprices.pt';
+const siteUrl = appConfig.siteUrl;
 
 /**
  * Por agora só lista as rotas estáticas públicas. Quando as categorias

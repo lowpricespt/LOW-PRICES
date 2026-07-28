@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { UsersRepository } from '../users/users.repository';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { AuditLogService, AuditAction } from '../audit-log/audit-log.service';
@@ -13,6 +13,8 @@ import type { LoginDto } from './dto/login.dto';
 import type { AuthResponseDto } from './dto/auth-response.dto';
 import type { ForgotPasswordDto } from './dto/forgot-password.dto';
 import type { ResetPasswordDto } from './dto/reset-password.dto';
+import type { ChangePasswordDto } from './dto/change-password.dto';
+import type { ChangeEmailDto } from './dto/change-email.dto';
 
 interface RequestContext {
   ipAddress?: string;
@@ -176,6 +178,166 @@ export class AuthService {
       action: AuditAction.PASSWORD_RESET_COMPLETED,
       ipAddress: context.ipAddress,
     });
+  }
+
+  /**
+   * Alterar password ESTANDO autenticado (diferente do fluxo "esqueci-me
+   * da password"): exige a password atual para confirmar que é mesmo o
+   * dono da conta a pedir, mesmo já com uma sessão válida — protege
+   * contra alguém que apanhe um browser com sessão aberta e tente
+   * sequestrar a conta trocando a password.
+   *
+   * Termina todas as OUTRAS sessões (mantém a atual) — mesmo princípio
+   * de segurança do reset por email, mas sem derrubar quem acabou de
+   * fazer a alteração.
+   */
+  async changePassword(
+    userId: string,
+    currentSessionId: string,
+    dto: ChangePasswordDto,
+    context: RequestContext,
+  ): Promise<void> {
+    const user = await this.usersRepository.findById(userId);
+    if (!user || !user.passwordHash) {
+      throw new BadRequestException(
+        'Esta conta não tem palavra-passe definida (entraste com Google) — não é possível alterá-la aqui.',
+      );
+    }
+
+    const isCurrentValid = await this.passwordService.verify(user.passwordHash, dto.currentPassword);
+    if (!isCurrentValid) {
+      throw new UnauthorizedException('A palavra-passe atual está incorreta.');
+    }
+
+    const passwordHash = await this.passwordService.hash(dto.newPassword);
+    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+    await this.sessionsRepository.revokeAllSessionsForUser(userId, 'password_changed', currentSessionId);
+
+    await this.notifySafely(
+      user.email,
+      'A tua palavra-passe foi alterada — Low Prices',
+      `
+        <p>Olá ${user.name},</p>
+        <p>A palavra-passe da tua conta Low Prices acabou de ser alterada. Todas as outras sessões ativas foram terminadas.</p>
+        <p>Se não foste tu, contacta-nos imediatamente.</p>
+      `,
+    );
+
+    await this.auditLogService.record({
+      userId,
+      action: AuditAction.PASSWORD_CHANGED,
+      ipAddress: context.ipAddress,
+    });
+  }
+
+  /**
+   * Pedido de alteração de email: exige a password atual (mesma lógica
+   * do changePassword) e NUNCA altera User.email de imediato — cria um
+   * VerificationToken com o email pretendido e envia o link de
+   * confirmação para o NOVO endereço. Isto garante que quem pede a
+   * alteração tem mesmo acesso à caixa de correio nova, evitando que
+   * alguém troque o email de uma conta para um endereço que não controla
+   * e a sequestre.
+   */
+  async requestEmailChange(userId: string, dto: ChangeEmailDto, context: RequestContext): Promise<void> {
+    const user = await this.usersRepository.findById(userId);
+    if (!user || !user.passwordHash) {
+      throw new BadRequestException(
+        'Esta conta não tem palavra-passe definida (entraste com Google) — não é possível alterar o email aqui.',
+      );
+    }
+
+    const isCurrentValid = await this.passwordService.verify(user.passwordHash, dto.currentPassword);
+    if (!isCurrentValid) {
+      throw new UnauthorizedException('A palavra-passe atual está incorreta.');
+    }
+
+    if (dto.newEmail.toLowerCase() === user.email.toLowerCase()) {
+      throw new BadRequestException('Este já é o teu email atual.');
+    }
+
+    const existing = await this.usersRepository.findByEmail(dto.newEmail);
+    if (existing) {
+      throw new ConflictException('Já existe uma conta com este email.');
+    }
+
+    const { raw, hash } = this.tokenService.generateOpaqueToken();
+    await this.prisma.verificationToken.create({
+      data: {
+        userId,
+        type: 'EMAIL_VERIFICATION',
+        tokenHash: hash,
+        newEmail: dto.newEmail,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
+      },
+    });
+
+    const confirmUrl = `${this.configService.get<string>('CORS_ORIGIN')?.split(',')[0] ?? ''}/confirmar-email?token=${raw}`;
+    await this.notifySafely(
+      dto.newEmail,
+      'Confirma o teu novo email — Low Prices',
+      `
+        <p>Olá ${user.name},</p>
+        <p>Recebemos um pedido para associar este email à tua conta Low Prices. Este link expira em 1 hora:</p>
+        <p><a href="${confirmUrl}">${confirmUrl}</a></p>
+        <p>Se não foste tu a pedir, ignora este email — a tua conta mantém-se inalterada.</p>
+      `,
+    );
+
+    await this.auditLogService.record({
+      userId,
+      action: AuditAction.EMAIL_CHANGE_REQUESTED,
+      metadata: { newEmail: dto.newEmail },
+      ipAddress: context.ipAddress,
+    });
+  }
+
+  async confirmEmailChange(rawToken: string, context: RequestContext): Promise<void> {
+    const tokenHash = this.tokenService.hashRefreshToken(rawToken); // mesmo SHA-256, reutilizado
+    const verificationToken = await this.prisma.verificationToken.findUnique({ where: { tokenHash } });
+
+    if (
+      !verificationToken ||
+      verificationToken.type !== 'EMAIL_VERIFICATION' ||
+      !verificationToken.newEmail ||
+      verificationToken.usedAt ||
+      verificationToken.expiresAt < new Date()
+    ) {
+      throw new UnauthorizedException('Este link de confirmação é inválido ou já expirou.');
+    }
+
+    // Reconfirma que ninguém registou entretanto o mesmo email durante a
+    // janela de validade do token (condição de corrida improvável, mas real).
+    const existing = await this.usersRepository.findByEmail(verificationToken.newEmail);
+    if (existing) {
+      throw new ConflictException('Já existe uma conta com este email.');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: verificationToken.userId },
+        data: { email: verificationToken.newEmail },
+      }),
+      this.prisma.verificationToken.update({
+        where: { id: verificationToken.id },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    await this.auditLogService.record({
+      userId: verificationToken.userId,
+      action: AuditAction.EMAIL_CHANGED,
+      metadata: { newEmail: verificationToken.newEmail },
+      ipAddress: context.ipAddress,
+    });
+  }
+
+  private async notifySafely(to: string, subject: string, html: string): Promise<void> {
+    try {
+      await this.emailService.send({ to, subject, html });
+    } catch {
+      // Falha de envio de email nunca deve derrubar o fluxo de autenticação.
+    }
   }
 
   async login(dto: LoginDto, context: RequestContext): Promise<AuthResponseDto> {

@@ -1,31 +1,38 @@
 'use client';
 
-import { useState } from 'react';
-import { SERVICE_CATEGORIES } from '@/constants/categories';
+import { useServiceCategories } from '@/hooks/use-service-categories';
 import { cn } from '@/lib/utils';
 
-export function StepCategories() {
-  const [selected, setSelected] = useState<string[]>([]);
+export interface StepCategoriesProps {
+  selected: string[];
+  onToggle: (categoryId: string) => void;
+  error?: string | null;
+}
 
-  function toggle(id: string) {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-  }
+export function StepCategories({ selected, onToggle, error }: StepCategoriesProps) {
+  const { categories, isLoading } = useServiceCategories();
 
   return (
     <div>
       <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
         Em que categorias trabalhas?
       </h1>
-      <p className="mt-2 text-muted-foreground">Podes escolher mais do que uma.</p>
+      <p className="mt-2 text-muted-foreground">Podes escolher mais do que uma — isto decide que pedidos vês.</p>
+
+      {error ? (
+        <p className="mt-4 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+      ) : null}
+
+      {isLoading && <p className="mt-6 text-sm text-muted-foreground">A carregar categorias…</p>}
 
       <div className="mt-6 flex flex-wrap gap-2">
-        {SERVICE_CATEGORIES.map((category) => {
+        {categories.map((category) => {
           const isSelected = selected.includes(category.id);
           return (
             <button
               key={category.id}
               type="button"
-              onClick={() => toggle(category.id)}
+              onClick={() => onToggle(category.id)}
               className={cn(
                 'flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors',
                 isSelected

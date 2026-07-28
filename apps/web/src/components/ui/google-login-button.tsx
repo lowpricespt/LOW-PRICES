@@ -1,9 +1,22 @@
 import { env } from '@/config';
 
-export function GoogleLoginButton() {
+export interface GoogleLoginButtonProps {
+  /// 'PROFESSIONAL' quando usado no registo de Especialista — o backend
+  /// usa isto (via parâmetro OAuth `state`) para criar a conta com a
+  /// role certa e, no fim, obrigar à seleção de categorias antes do
+  /// dashboard. Omitido/'CLIENT' em qualquer outro sítio.
+  role?: 'CLIENT' | 'PROFESSIONAL';
+}
+
+export function GoogleLoginButton({ role }: GoogleLoginButtonProps = {}) {
+  const href =
+    role === 'PROFESSIONAL'
+      ? `${env.NEXT_PUBLIC_API_URL}/auth/google?role=PROFESSIONAL`
+      : `${env.NEXT_PUBLIC_API_URL}/auth/google`;
+
   return (
     <a
-      href={`${env.NEXT_PUBLIC_API_URL}/auth/google`}
+      href={href}
       className="flex w-full items-center justify-center gap-2.5 rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-secondary"
     >
       <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">

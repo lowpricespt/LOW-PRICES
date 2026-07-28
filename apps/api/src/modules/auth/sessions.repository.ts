@@ -76,9 +76,15 @@ export class SessionsRepository {
     });
   }
 
-  async revokeAllSessionsForUser(userId: string, reason: string) {
+  /**
+   * `exceptSessionId` opcional: usado por changePassword (autenticado) para
+   * derrubar todas as OUTRAS sessões mas manter a atual válida — ao
+   * contrário do reset de password "esqueci-me", onde não há sessão atual
+   * de confiança e por isso todas caem (chamado sem este parâmetro).
+   */
+  async revokeAllSessionsForUser(userId: string, reason: string, exceptSessionId?: string) {
     await this.prisma.session.updateMany({
-      where: { userId, revokedAt: null },
+      where: { userId, revokedAt: null, ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}) },
       data: { revokedAt: new Date(), revokedReason: reason },
     });
   }

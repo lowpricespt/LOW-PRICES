@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { appConfig } from '@/config';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -6,9 +7,13 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/conta', '/pedidos', '/mensagens', '/definicoes', '/admin'],
+        // '/conta', '/pedidos', '/mensagens', '/definicoes' eram nomes de
+        // rotas de uma iteração anterior — as áreas privadas reais hoje
+        // vivem todas debaixo de /dashboard e /registo/profissional
+        // (dados por utilizador, sem valor de SEO e sem sentido indexar).
+        disallow: ['/dashboard', '/registo/profissional/categorias', '/admin'],
       },
     ],
-    sitemap: 'https://lowprices.pt/sitemap.xml',
+    sitemap: `${appConfig.siteUrl}/sitemap.xml`,
   };
 }

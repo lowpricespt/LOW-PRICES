@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { Mail, Phone } from 'lucide-react';
-import { Card, EmptyState, Skeleton, ErrorState, Badge } from '@/components/ui';
+import { Card, EmptyState, Skeleton, ErrorState, Badge, Button } from '@/components/ui';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
-import { fetchMyJobs, type Job } from '@/features/dashboard/services/jobs-api';
+import { fetchMyJobs, startJob, completeJob, cancelJob, type Job } from '@/features/dashboard/services/jobs-api';
 
 const STATUS_LABELS: Record<string, string> = {
   SCHEDULED: 'Agendado',
@@ -16,12 +16,30 @@ const STATUS_LABELS: Record<string, string> = {
 export default function ProfessionalAcceptedJobsPage() {
   const [jobs, setJobs] = useState<Job[] | null>(null);
   const [error, setError] = useState(false);
+  const [pendingJobId, setPendingJobId] = useState<string | null>(null);
 
-  useEffect(() => {
+  function load() {
     fetchMyJobs()
       .then(setJobs)
       .catch(() => setError(true));
-  }, []);
+  }
+
+  useEffect(load, []);
+
+  async function handleAction(jobId: string, action: 'start' | 'complete' | 'cancel') {
+    setPendingJobId(jobId);
+    try {
+      if (action === 'start') await startJob(jobId);
+      if (action === 'complete') await completeJob(jobId);
+      if (action === 'cancel') await cancelJob(jobId);
+      load();
+    } catch {
+      // Erro genérico é suficiente aqui — a lista simplesmente não avança
+      // e a pessoa pode tentar de novo.
+    } finally {
+      setPendingJobId(null);
+    }
+  }
 
   return (
     <div>
@@ -73,6 +91,37 @@ export default function ProfessionalAcceptedJobsPage() {
                   ) : null}
                 </div>
               </div>
+
+              {(job.status === 'SCHEDULED' || job.status === 'IN_PROGRESS') && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {job.status === 'SCHEDULED' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={pendingJobId === job.id}
+                      onClick={() => handleAction(job.id, 'start')}
+                    >
+                      Marcar como iniciado
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    disabled={pendingJobId === job.id}
+                    onClick={() => handleAction(job.id, 'complete')}
+                  >
+                    Marcar como concluído
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    disabled={pendingJobId === job.id}
+                    onClick={() => handleAction(job.id, 'cancel')}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              )}
             </Card>
           ))}
         </div>

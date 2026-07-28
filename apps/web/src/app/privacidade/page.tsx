@@ -15,15 +15,17 @@ export default function PrivacyPage() {
         exigidos pelo RGPD (Regulamento (UE) 2016/679) e pela Lei n.º 58/2019.{' '}
         <strong className="text-foreground">Não substitui aconselhamento jurídico</strong> — deve ser revisto
         por um advogado ou DPO antes do lançamento, e os campos entre parênteses retos preenchidos com os
-        dados reais da empresa.
+        dados reais. Nesta fase a plataforma é operada por uma pessoa singular (trabalhador independente),
+        não por uma empresa constituída — o RGPD aplica-se da mesma forma: quem trata os dados pessoais dos
+        utilizadores é sempre responsável perante a CNPD, com ou sem empresa formal.
       </div>
 
       <div className="mt-8 max-w-none space-y-6 text-sm leading-relaxed text-foreground [&_a]:text-primary [&_a]:underline [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-semibold [&_li]:ml-5 [&_li]:list-disc [&_p]:text-muted-foreground [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:bg-secondary [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_table]:w-full [&_table]:border-collapse [&_ul]:space-y-1">
         <h2>1. Responsável pelo tratamento</h2>
         <p>
-          [Nome da empresa], NIF [NIF], com sede em [morada], é responsável pelo tratamento dos dados
-          pessoais recolhidos através da Low Prices. Contacto para questões de privacidade: [email de
-          privacidade/DPO].
+          [Nome completo], contribuinte fiscal n.º [NIF], com domicílio fiscal em [morada], é responsável
+          pelo tratamento dos dados pessoais recolhidos através da Low Prices. Contacto para questões de
+          privacidade: [email de privacidade].
         </p>
 
         <h2>2. Que dados recolhemos</h2>

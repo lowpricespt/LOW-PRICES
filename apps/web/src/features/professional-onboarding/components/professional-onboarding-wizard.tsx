@@ -1,8 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { ComponentType } from 'react';
-import { useRouter } from 'next/navigation';
 import { WizardShell } from '@/components/wizard';
 import { useAuth } from '@/providers/auth-provider';
 import type { ApiError } from '@/services/api';
@@ -21,7 +19,6 @@ import { OnboardingSubmitted } from './onboarding-submitted';
 const lastStepIndex = PROFESSIONAL_ONBOARDING_STEPS.length - 1;
 
 export function ProfessionalOnboardingWizard() {
-  const router = useRouter();
   const { register } = useAuth();
 
   const [currentStepIndex, setCurrentStepIndex] = useState(0);

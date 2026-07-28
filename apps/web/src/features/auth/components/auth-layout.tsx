@@ -6,7 +6,7 @@ export interface AuthLayoutProps {
   title: string;
   description: string;
   children: React.ReactNode;
-  footer: React.ReactNode;
+  footer?: React.ReactNode;
 }
 
 export function AuthLayout({ title, description, children, footer }: AuthLayoutProps) {

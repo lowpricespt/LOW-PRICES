@@ -19,6 +19,12 @@ import { OnboardingSubmitted } from './onboarding-submitted';
 
 const lastStepIndex = PROFESSIONAL_ONBOARDING_STEPS.length - 1;
 
+// Tem de bater certo com RegisterDto/IsStrongPassword (backend) — validar
+// aqui à frente evita chegar ao fim do passo só para descobrir, via erro
+// 400, que falta uma maiúscula ou um número na password.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/;
+
 export function ProfessionalOnboardingWizard() {
   const { register } = useAuth();
 
@@ -58,8 +64,12 @@ export function ProfessionalOnboardingWizard() {
     if (isAccountStep) {
       setAccountError(null);
 
-      if (!name.trim() || !email.includes('@') || password.length < 8) {
-        setAccountError('Preenche o nome, um email válido e uma palavra-passe com pelo menos 8 caracteres.');
+      if (name.trim().length < 2 || !EMAIL_REGEX.test(email)) {
+        setAccountError('Preenche o nome e um email válido.');
+        return;
+      }
+      if (password.length < 8 || !PASSWORD_REGEX.test(password)) {
+        setAccountError('A palavra-passe deve ter pelo menos 8 caracteres, com maiúsculas, minúsculas e um número.');
         return;
       }
 

@@ -16,6 +16,7 @@ import { StepBudget } from './steps/step-budget';
 import { StepSummary } from './steps/step-summary';
 import { StepPublish } from './steps/step-publish';
 import { RequestPublished } from './request-published';
+import { DESCRIPTION_MIN_LENGTH } from './steps/step-details';
 
 const STEP_COMPONENTS: ComponentType[] = [
   StepCategory,
@@ -49,7 +50,8 @@ export function RequestServiceWizard() {
 
   const isNextDisabled =
     (currentStepIndex === 0 && !formData.categoryId) ||
-    (currentStepIndex === 3 && formData.location.trim().length === 0) ||
+    (currentStepIndex === 1 && formData.description.trim().length < DESCRIPTION_MIN_LENGTH) ||
+    (currentStepIndex === 3 && formData.location.trim().length < 3) ||
     (currentStepIndex === 4 && !formData.urgency);
 
   async function handleNext() {
@@ -68,7 +70,7 @@ export function RequestServiceWizard() {
           latitude: formData.latitude ?? undefined,
           longitude: formData.longitude ?? undefined,
           urgency: formData.urgency!,
-          budget: formData.budget ? Number(formData.budget) : undefined,
+          budget: formData.budget && !Number.isNaN(Number(formData.budget)) ? Number(formData.budget) : undefined,
         });
         await publishServiceRequest(created.id);
         setIsPublished(true);

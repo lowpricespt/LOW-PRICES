@@ -38,6 +38,10 @@ export interface PaginatedServiceRequests {
   pageSize: number;
   total: number;
   isLocationUnlocked?: boolean;
+  /// Só vem preenchido em GET /requests/available — permite à UI
+  /// distinguir "sem pedidos de momento" de "conta ainda não aprovada"
+  /// (nunca deviam mostrar o mesmo ecrã vazio genérico).
+  verificationStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 export interface ServiceRequestResponse {

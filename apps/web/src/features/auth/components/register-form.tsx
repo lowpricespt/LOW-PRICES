@@ -83,6 +83,8 @@ export function RegisterForm() {
           autoComplete="new-password"
           required
           minLength={8}
+          pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+"
+          title="Pelo menos 8 caracteres, com maiúsculas, minúsculas e um número."
           value={password}
           onChange={(event) => setPassword(event.target.value)}
         />

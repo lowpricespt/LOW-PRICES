@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, ForbiddenException, Get, Param, Post } from '@nestjs/common';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
@@ -18,6 +18,16 @@ export class QuotesController {
   async create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateQuoteDto) {
     const professional = await this.requestsService.resolveProfessionalProfile(user.userId);
     if (!professional) throw new BadRequestException('Perfil de profissional não encontrado.');
+    // BUG CRÍTICO corrigido aqui: era o único ponto que faltava para um
+    // profissional NUNCA revisto por um admin (verificationStatus ainda
+    // PENDING) enviar orçamentos reais a clientes — a listagem "Pedidos
+    // disponíveis" já bloqueia isto, mas bloquear só ali não chega (a API
+    // aceitava a chamada na mesma vinda de qualquer outro sítio).
+    if (professional.verificationStatus !== 'APPROVED') {
+      throw new ForbiddenException(
+        'A tua conta ainda está pendente de verificação — vais poder enviar orçamentos assim que for aprovada.',
+      );
+    }
     return this.quotesService.create(professional.id, dto);
   }
 

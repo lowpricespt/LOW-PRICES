@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Inbox } from 'lucide-react';
+import { Inbox, ShieldAlert } from 'lucide-react';
 import { Badge, Button, EmptyState, ErrorState, Input, Skeleton } from '@/components/ui';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
 import { RequestCard } from '@/features/dashboard/components/request-card';
@@ -58,16 +58,24 @@ function SendQuoteForm({ requestId, onSent }: { requestId: string; onSent: () =>
 
 export default function ProfessionalAvailableRequestsPage() {
   const [requests, setRequests] = useState<ServiceRequest[] | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<string | undefined>(undefined);
   const [error, setError] = useState(false);
+
   const [openFormId, setOpenFormId] = useState<string | null>(null);
 
   function load() {
     fetchAvailableServiceRequests({ pageSize: 50 })
-      .then((result) => setRequests(result.items))
+      .then((result) => {
+        setRequests(result.items);
+        setVerificationStatus(result.verificationStatus);
+      })
       .catch(() => setError(true));
   }
 
   useEffect(load, []);
+
+  const isPendingVerification = verificationStatus === 'PENDING';
+  const isRejected = verificationStatus === 'REJECTED';
 
   return (
     <div>
@@ -84,6 +92,18 @@ export default function ProfessionalAvailableRequestsPage() {
             <Skeleton key={index} className="h-28 w-full rounded-xl" />
           ))}
         </div>
+      ) : isPendingVerification ? (
+        <EmptyState
+          icon={ShieldAlert}
+          title="A tua conta está pendente de verificação"
+          description="Assim que a equipa Low Prices aprovar o teu perfil (costuma demorar menos de 24 horas), os pedidos compatíveis com as tuas categorias começam a aparecer aqui."
+        />
+      ) : isRejected ? (
+        <EmptyState
+          icon={ShieldAlert}
+          title="A tua conta não foi aprovada"
+          description="Contacta o suporte da Low Prices para perceberes o motivo e como corrigir."
+        />
       ) : requests.length === 0 ? (
         <EmptyState
           icon={Inbox}

@@ -1,6 +1,6 @@
 'use client';
 
-import { SERVICE_CATEGORIES } from '@/constants/categories';
+import { useServiceCategories } from '@/hooks/use-service-categories';
 import { URGENCY_OPTIONS } from '../../constants/steps';
 import { useRequestServiceStore } from '../../store/use-request-service-store';
 
@@ -15,8 +15,9 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 export function StepSummary() {
   const formData = useRequestServiceStore((state) => state.formData);
+  const { categories } = useServiceCategories();
 
-  const category = SERVICE_CATEGORIES.find((item) => item.id === formData.categoryId);
+  const category = categories.find((item) => item.id === formData.categoryId);
   const urgency = URGENCY_OPTIONS.find((item) => item.id === formData.urgency);
 
   return (

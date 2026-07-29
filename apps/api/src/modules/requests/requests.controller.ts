@@ -39,15 +39,29 @@ export class RequestsController {
   async findAvailable(@CurrentUser() user: AuthenticatedUser, @Query() query: ListRequestsQueryDto) {
     const professional = await this.requestsService.resolveProfessionalProfile(user.userId);
     if (!professional) throw new BadRequestException('Perfil de profissional não encontrado.');
-    if (professional.categoryIds.length === 0) {
-      return { items: [], page: query.page, pageSize: query.pageSize, total: 0, isLocationUnlocked: false };
+    // BUG CRÍTICO corrigido aqui: esta rota nunca verificava
+    // `verificationStatus` — uma conta de profissional criada agora mesmo
+    // (nunca revista por um admin) conseguia ver e responder a pedidos
+    // reais de clientes. `MatchingService` já filtrava isto para o email
+    // de notificação, mas quem navegasse diretamente para "Pedidos
+    // disponíveis" contornava esse filtro por completo.
+    if (professional.verificationStatus !== 'APPROVED' || professional.categoryIds.length === 0) {
+      return {
+        items: [],
+        page: query.page,
+        pageSize: query.pageSize,
+        total: 0,
+        isLocationUnlocked: false,
+        verificationStatus: professional.verificationStatus,
+      };
     }
-    return this.requestsService.findAvailable(
+    const result = await this.requestsService.findAvailable(
       professional.categoryIds,
       professional.id,
       professional.hasActiveAreaAccess,
       query,
     );
+    return { ...result, verificationStatus: professional.verificationStatus };
   }
 
   @Get(':id')

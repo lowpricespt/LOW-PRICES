@@ -39,6 +39,7 @@ export function StepLocation() {
           onChange={handleTextChange}
           onPlaceSelected={handlePlaceSelected}
           placeholder="Morada, freguesia ou código postal"
+          maxLength={200}
           className="w-full"
           inputClassName="h-auto border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
         />

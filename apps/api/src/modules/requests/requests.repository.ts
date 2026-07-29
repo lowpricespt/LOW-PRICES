@@ -36,10 +36,21 @@ export class RequestsRepository {
   }
 
   /**
-   * "Pedidos disponíveis" de um profissional: publicados, na(s)
-   * categoria(s) que o profissional atende. O filtro por localização/raio
-   * (PostGIS) entra quando a migração espacial for ativada — por agora
-   * filtra só por categoria, o resto fica documentado como próximo passo.
+   * "Pedidos disponíveis" de um profissional: publicados OU já em
+   * negociação (pelo menos um orçamento enviado por OUTRO profissional),
+   * na(s) categoria(s) que o profissional atende. O filtro por
+   * localização/raio (PostGIS) entra quando a migração espacial for
+   * ativada — por agora filtra só por categoria, o resto fica
+   * documentado como próximo passo.
+   *
+   * BUG CRÍTICO corrigido aqui: esta query só incluía `status:
+   * 'PUBLISHED'`, mas `QuotesService.create` já aceitava orçamentos em
+   * pedidos `IN_NEGOTIATION` (o estado que o pedido assume assim que
+   * QUALQUER profissional envia o primeiro orçamento). Resultado: assim
+   * que um profissional enviava o primeiro orçamento, o pedido
+   * desaparecia de "Pedidos disponíveis" para TODOS os outros
+   * profissionais elegíveis — quebrando o propósito central do
+   * marketplace (o cliente comparar vários orçamentos antes de aceitar).
    *
    * Inclui `quotes` filtrado pelo PRÓPRIO profissional (no máximo 1,
    * @@unique([serviceRequestId, professionalProfileId]) não existe mas a
@@ -53,7 +64,7 @@ export class RequestsRepository {
     pageSize: number,
   ) {
     const where: Prisma.ServiceRequestWhereInput = {
-      status: 'PUBLISHED',
+      status: { in: ['PUBLISHED', 'IN_NEGOTIATION'] },
       categoryId: { in: categoryIds },
     };
     const [items, total] = await this.prisma.$transaction([
@@ -99,15 +110,19 @@ export class RequestsRepository {
     return profile?.user ?? null;
   }
 
-  async findProfessionalProfileByUserId(
-    userId: string,
-  ): Promise<{ id: string; categoryIds: string[]; hasActiveAreaAccess: boolean } | null> {
+  async findProfessionalProfileByUserId(userId: string): Promise<{
+    id: string;
+    categoryIds: string[];
+    hasActiveAreaAccess: boolean;
+    verificationStatus: string;
+  } | null> {
     const profile = await this.prisma.professionalProfile.findUnique({
       where: { userId },
       select: {
         id: true,
         hasAreaAccess: true,
         areaAccessExpiresAt: true,
+        verificationStatus: true,
         categories: { select: { categoryId: true } },
       },
     });
@@ -118,6 +133,7 @@ export class RequestsRepository {
       id: profile.id,
       categoryIds: profile.categories.map((c) => c.categoryId),
       hasActiveAreaAccess,
+      verificationStatus: profile.verificationStatus,
     };
   }
 }

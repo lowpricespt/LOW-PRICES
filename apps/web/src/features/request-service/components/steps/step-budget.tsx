@@ -21,7 +21,13 @@ export function StepBudget() {
           type="text"
           inputMode="numeric"
           value={budget}
-          onChange={(event) => updateFormData({ budget: event.target.value })}
+          onChange={(event) => {
+            // Só dígitos (e um único ponto decimal) — evita mandar lixo
+            // para o backend (Number("abc") é NaN, que se perdia em
+            // silêncio no submit em vez de avisar logo aqui).
+            const sanitized = event.target.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+            updateFormData({ budget: sanitized });
+          }}
           placeholder="Ex.: 50"
           className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />

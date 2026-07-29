@@ -61,8 +61,10 @@ class _StepAccountState extends ConsumerState<StepAccount> {
           TextField(
             controller: _passwordController,
             obscureText: _obscurePassword,
+            onChanged: (value) => ref.read(professionalOnboardingProvider.notifier).setPassword(value),
             decoration: InputDecoration(
               labelText: 'Palavra-passe',
+              helperText: 'Mínimo 8 caracteres, com maiúscula e número',
               suffixIcon: IconButton(
                 icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),

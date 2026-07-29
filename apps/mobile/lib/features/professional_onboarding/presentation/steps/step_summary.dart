@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/service_categories.dart';
+import '../../../../providers/app_providers.dart';
 import '../../providers/professional_onboarding_provider.dart';
 
 class StepSummary extends ConsumerWidget {
@@ -10,8 +10,9 @@ class StepSummary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final formData = ref.watch(professionalOnboardingProvider).formData;
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
 
-    final categoryNames = kServiceCategories
+    final categoryNames = categories
         .where((category) => formData.categoryIds.contains(category.id))
         .map((category) => category.name)
         .join(', ');

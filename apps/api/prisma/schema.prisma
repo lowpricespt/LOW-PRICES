@@ -381,6 +381,13 @@ model Quote {
   message     String?
   createdAt   DateTime @default(now())
   respondedAt DateTime?
+  /// Data/hora que o profissional propõe já ao enviar o orçamento
+  /// (opcional). Se o cliente aceitar este orçamento, o Job criado usa
+  /// isto como scheduledStart/scheduledEnd automaticamente — poupa o
+  /// profissional de ter de voltar à Agenda para agendar um trabalho que
+  /// já sabia quando ia fazer.
+  proposedStart DateTime?
+  proposedEnd   DateTime?
 
   job Job?
   messages Message[]

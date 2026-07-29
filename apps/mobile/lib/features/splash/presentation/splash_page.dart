@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/routing/dashboard_route.dart';
 import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/logo_mark.dart';
 
@@ -21,15 +22,14 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   Future<void> _bootstrap() async {
     final authRepository = ref.read(authRepositoryProvider);
     final hasSession = await authRepository.hasActiveSession();
+    final role = hasSession ? await authRepository.currentRole() : null;
 
     // Pausa curta apenas para o logótipo não "piscar" — sem lógica de
     // negócio associada.
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
 
-    // Quando existir sessão real, isto deve navegar para o dashboard
-    // correto (cliente ou profissional) em vez da home.
-    context.go(hasSession ? '/' : '/');
+    context.go(dashboardRouteForRole(role));
   }
 
   @override

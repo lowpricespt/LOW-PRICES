@@ -13,11 +13,11 @@ class AppBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final (background, foreground) = switch (variant) {
-      AppBadgeVariant.primary => (theme.colorScheme.primary.withOpacity(0.12), theme.colorScheme.primary),
+      AppBadgeVariant.primary => (theme.colorScheme.primary.withValues(alpha: 0.12), theme.colorScheme.primary),
       AppBadgeVariant.secondary => (theme.colorScheme.surface, theme.colorScheme.onSurface),
-      AppBadgeVariant.success => (AppColors.success.withOpacity(0.12), AppColors.success),
+      AppBadgeVariant.success => (AppColors.success.withValues(alpha: 0.12), AppColors.success),
       AppBadgeVariant.destructive => (
-          theme.colorScheme.error.withOpacity(0.12),
+          theme.colorScheme.error.withValues(alpha: 0.12),
           theme.colorScheme.error,
         ),
     };

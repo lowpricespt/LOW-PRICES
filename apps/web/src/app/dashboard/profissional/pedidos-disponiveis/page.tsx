@@ -13,6 +13,9 @@ import type { ApiError } from '@/services/api';
 function SendQuoteForm({ requestId, onSent }: { requestId: string; onSent: () => void }) {
   const [price, setPrice] = useState('');
   const [message, setMessage] = useState('');
+  const [proposeSchedule, setProposeSchedule] = useState(false);
+  const [proposedStart, setProposedStart] = useState('');
+  const [proposedEnd, setProposedEnd] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,9 +27,23 @@ function SendQuoteForm({ requestId, onSent }: { requestId: string; onSent: () =>
       setError('Indica um preço válido.');
       return;
     }
+    if (proposeSchedule && (!proposedStart || !proposedEnd)) {
+      setError('Indica a data/hora de início e de fim, ou desativa a proposta de agendamento.');
+      return;
+    }
+    if (proposeSchedule && new Date(proposedEnd) <= new Date(proposedStart)) {
+      setError('A hora de fim tem de ser depois da hora de início.');
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await createQuote({ serviceRequestId: requestId, price: numericPrice, message: message.trim() || undefined });
+      await createQuote({
+        serviceRequestId: requestId,
+        price: numericPrice,
+        message: message.trim() || undefined,
+        proposedStart: proposeSchedule ? new Date(proposedStart).toISOString() : undefined,
+        proposedEnd: proposeSchedule ? new Date(proposedEnd).toISOString() : undefined,
+      });
       onSent();
     } catch (err) {
       setError((err as ApiError).message ?? 'Não foi possível enviar o orçamento.');
@@ -51,6 +68,36 @@ function SendQuoteForm({ requestId, onSent }: { requestId: string; onSent: () =>
           {isSubmitting ? 'A enviar…' : 'Enviar'}
         </Button>
       </div>
+
+      <label className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={proposeSchedule}
+          onChange={(event) => setProposeSchedule(event.target.checked)}
+          className="size-3.5 rounded border-border"
+        />
+        Já sei quando posso ir — propor data e hora
+      </label>
+      {proposeSchedule && (
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-xs text-muted-foreground">Início</label>
+            <Input
+              type="datetime-local"
+              value={proposedStart}
+              onChange={(event) => setProposedStart(event.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs text-muted-foreground">Fim</label>
+            <Input type="datetime-local" value={proposedEnd} onChange={(event) => setProposedEnd(event.target.value)} />
+          </div>
+          <p className="text-xs text-muted-foreground sm:col-span-2">
+            Se o cliente aceitar este orçamento, o trabalho já fica agendado na tua Agenda com esta data e hora —
+            não precisas de voltar lá para o marcar.
+          </p>
+        </div>
+      )}
       {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
     </form>
   );

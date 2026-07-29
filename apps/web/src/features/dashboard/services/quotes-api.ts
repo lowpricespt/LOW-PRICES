@@ -8,6 +8,8 @@ export interface Quote {
   message: string | null;
   createdAt: string;
   respondedAt: string | null;
+  proposedStart: string | null;
+  proposedEnd: string | null;
   professional: {
     professionalProfileId: string;
     name: string;
@@ -24,6 +26,8 @@ export async function createQuote(params: {
   serviceRequestId: string;
   price: number;
   message?: string;
+  proposedStart?: string;
+  proposedEnd?: string;
 }): Promise<Quote> {
   const { data } = await apiClient.post<Quote>('/quotes', params);
   return data;

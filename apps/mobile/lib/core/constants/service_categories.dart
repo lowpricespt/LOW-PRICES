@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 
-class ServiceCategory {
-  const ServiceCategory({required this.id, required this.name, required this.icon});
+/// Ícone por `slug` de categoria — os dados reais (id UUID, nome, slug)
+/// vêm sempre de `GET /categories` via `categoriesProvider`; isto serve
+/// só de mapeamento visual, nunca de fonte de verdade sobre que
+/// categorias existem (essa era a causa do bug: o `id` usado para
+/// submeter pedidos era um slug local em vez do UUID real da BD).
+const Map<String, IconData> kCategoryIconsBySlug = {
+  'canalizador': Icons.plumbing_outlined,
+  'eletricista': Icons.bolt_outlined,
+  'pintor': Icons.format_paint_outlined,
+  'jardinagem': Icons.park_outlined,
+  'limpeza': Icons.auto_awesome_outlined,
+  'mudancas': Icons.local_shipping_outlined,
+  'montagem-moveis': Icons.handyman_outlined,
+  'informatica': Icons.laptop_mac_outlined,
+};
 
-  final String id;
-  final String name;
-  final IconData icon;
-}
-
-const List<ServiceCategory> kServiceCategories = [
-  ServiceCategory(id: 'canalizador', name: 'Canalizador', icon: Icons.plumbing_outlined),
-  ServiceCategory(id: 'eletricista', name: 'Eletricista', icon: Icons.bolt_outlined),
-  ServiceCategory(id: 'pintor', name: 'Pintor', icon: Icons.format_paint_outlined),
-  ServiceCategory(id: 'jardinagem', name: 'Jardinagem', icon: Icons.park_outlined),
-  ServiceCategory(id: 'limpeza', name: 'Limpeza', icon: Icons.auto_awesome_outlined),
-  ServiceCategory(id: 'mudancas', name: 'Mudanças', icon: Icons.local_shipping_outlined),
-  ServiceCategory(id: 'montagem-moveis', name: 'Montagem de móveis', icon: Icons.handyman_outlined),
-  ServiceCategory(id: 'informatica', name: 'Informática', icon: Icons.laptop_mac_outlined),
-];
+IconData iconForCategorySlug(String slug) => kCategoryIconsBySlug[slug] ?? Icons.build_outlined;

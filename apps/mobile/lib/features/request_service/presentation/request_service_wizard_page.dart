@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/utils/result.dart';
+import '../../../providers/app_providers.dart';
+import '../../../shared/widgets/app_feedback.dart';
 import '../../../shared/widgets/app_stepper.dart';
+import '../../../shared/widgets/loading_overlay.dart';
+import '../models/request_service_form_data.dart';
 import '../providers/request_service_provider.dart';
 import 'steps/step_budget.dart';
 import 'steps/step_category.dart';
@@ -43,6 +48,7 @@ class RequestServiceWizardPage extends ConsumerStatefulWidget {
 
 class _RequestServiceWizardPageState extends ConsumerState<RequestServiceWizardPage> {
   late final PageController _pageController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -60,16 +66,51 @@ class _RequestServiceWizardPageState extends ConsumerState<RequestServiceWizardP
     final index = state.currentStepIndex;
     final data = state.formData;
     if (index == 0) return data.categoryId != null;
+    if (index == 1) return data.description.trim().length >= 10;
     if (index == 3) return data.location.trim().isNotEmpty;
     if (index == 4) return data.urgency != null;
     return true;
   }
 
+  Future<void> _handlePublish(RequestServiceFormData data) async {
+    setState(() => _isSubmitting = true);
+
+    final budget = double.tryParse(data.budget.replaceAll(',', '.'));
+    final createResult = await ref.read(requestsRepositoryProvider).createRequest(
+          categoryId: data.categoryId!,
+          description: data.description.trim(),
+          location: data.location.trim(),
+          urgency: data.urgency!,
+          budget: budget,
+          photoUrls: data.photoUrls,
+        );
+
+    if (!mounted) return;
+
+    switch (createResult) {
+      case Err(:final failure):
+        setState(() => _isSubmitting = false);
+        showAppSnackBar(context, failure.message, isError: true);
+        return;
+      case Ok(:final value):
+        final publishResult = await ref.read(requestsRepositoryProvider).publishRequest(value);
+        if (!mounted) return;
+        setState(() => _isSubmitting = false);
+
+        switch (publishResult) {
+          case Err(:final failure):
+            showAppSnackBar(context, failure.message, isError: true);
+          case Ok():
+            ref.read(requestServiceProvider.notifier).reset();
+            context.go('/pedir-servico/publicado');
+        }
+    }
+  }
+
   void _handleNext(RequestServiceState state) {
     final isLastStep = state.currentStepIndex == kRequestServiceStepCount - 1;
     if (isLastStep) {
-      ref.read(requestServiceProvider.notifier).reset();
-      context.go('/pedir-servico/publicado');
+      _handlePublish(state.formData);
       return;
     }
     ref.read(requestServiceProvider.notifier).goNext();
@@ -109,16 +150,19 @@ class _RequestServiceWizardPageState extends ConsumerState<RequestServiceWizardP
           IconButton(icon: const Icon(Icons.close), onPressed: () => context.go('/')),
         ],
       ),
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // navegação só pelos botões, evita gestos acidentais
-        children: _stepWidgets,
+      body: LoadingOverlay(
+        isLoading: _isSubmitting,
+        child: PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(), // navegação só pelos botões, evita gestos acidentais
+          children: _stepWidgets,
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
-            onPressed: _canGoNext(state) ? () => _handleNext(state) : null,
+            onPressed: (_canGoNext(state) && !_isSubmitting) ? () => _handleNext(state) : null,
             child: Text(isLastStep ? 'Publicar pedido' : 'Continuar'),
           ),
         ),

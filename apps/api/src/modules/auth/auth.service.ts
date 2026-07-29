@@ -392,6 +392,52 @@ export class AuthService {
     }
 
     if (existingToken.revokedAt) {
+      // BUG CRÍTICO corrigido aqui: a deteção de reutilização disparava
+      // (e revogava TODAS as sessões) sempre que o mesmo utilizador tinha
+      // o site aberto em mais do que um separador/aba — cada aba renova
+      // a sessão de forma independente, e se duas renovações chegarem
+      // quase ao mesmo tempo, a segunda apresenta um token que a primeira
+      // já rodou. Isto não é roubo, é o mesmo dono a usar a conta em dois
+      // sítios ao mesmo tempo — mas até aqui era tratado exatamente da
+      // mesma forma que um token roubado, terminando a sessão em todo o
+      // lado sem aviso ("faço qualquer coisa e sou desligado").
+      //
+      // Correção: um período de graça curto (30s) depois de um token ser
+      // rodado — se aparecer outro pedido a usar o token antigo dentro
+      // desta janela, assume-se pedido concorrente legítimo (não roubo) e
+      // devolve-se uma sessão válida a partir do token ATUAL da mesma
+      // sessão, em vez de derrubar tudo. Fora da janela (roubo real,
+      // token usado minutos/horas depois de já ter sido substituído),
+      // continua a revogar tudo — a proteção real mantém-se.
+      const REUSE_GRACE_PERIOD_MS = 30_000;
+      const withinGracePeriod = Date.now() - existingToken.revokedAt.getTime() < REUSE_GRACE_PERIOD_MS;
+
+      if (withinGracePeriod && !existingToken.session.revokedAt) {
+        const active = await this.sessionsRepository.findActiveRefreshTokenForSession(existingToken.sessionId);
+        if (active && active.expiresAt > new Date()) {
+          const user = await this.usersRepository.findById(existingToken.session.userId);
+          if (user && user.status === 'ACTIVE') {
+            const { raw, hash } = this.tokenService.generateRefreshToken();
+            const expiresAt = new Date(Date.now() + this.tokenService.getRefreshTokenTtlMs());
+
+            await this.sessionsRepository.rotateRefreshToken({
+              oldTokenId: active.id,
+              sessionId: existingToken.sessionId,
+              newTokenHash: hash,
+              newExpiresAt: expiresAt,
+            });
+
+            const accessToken = this.tokenService.signAccessToken({
+              userId: user.id,
+              role: user.role,
+              sessionId: existingToken.sessionId,
+            });
+
+            return { accessToken, refreshToken: raw, user: UserResponseDto.fromEntity(user) };
+          }
+        }
+      }
+
       await this.sessionsRepository.revokeAllSessionsForUser(
         existingToken.session.userId,
         'refresh_token_reuse_detected',

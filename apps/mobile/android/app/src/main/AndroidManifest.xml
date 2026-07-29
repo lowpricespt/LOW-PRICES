@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- image_picker: só necessária para o passo "Tirar fotografia" (o
+         picker de galeria usa o Photo Picker do sistema, sem permissão). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <application
         android:label="low_prices"
         android:name="${applicationName}"

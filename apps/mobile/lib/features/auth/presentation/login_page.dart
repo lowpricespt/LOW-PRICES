@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/routing/dashboard_route.dart';
 import '../../../core/utils/result.dart';
 import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/app_feedback.dart';
@@ -41,7 +42,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     switch (result) {
       case Ok():
-        context.go('/');
+        final role = await ref.read(authRepositoryProvider).currentRole();
+        if (!mounted) return;
+        context.go(dashboardRouteForRole(role));
       case Err(:final failure):
         showAppSnackBar(context, failure.message, isError: true);
     }

@@ -30,11 +30,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String name,
     required String email,
     required String password,
+    String role = 'CLIENT',
   }) async {
     final result = await _apiService.guard(
       () => _apiService.dio.post<Map<String, dynamic>>(
         '/auth/register',
-        data: {'name': name, 'email': email, 'password': password, 'role': 'CLIENT'},
+        data: {'name': name, 'email': email, 'password': password, 'role': role},
       ),
     );
 
@@ -56,9 +57,13 @@ class AuthRepositoryImpl implements AuthRepository {
     return token != null;
   }
 
+  @override
+  Future<String?> currentRole() => _storageService.getRole();
+
   Future<Result<void>> _persistTokensFrom(Map<String, dynamic> data) async {
     final accessToken = data['accessToken'] as String?;
     final refreshToken = data['refreshToken'] as String?;
+    final role = (data['user'] as Map<String, dynamic>?)?['role'] as String?;
 
     if (accessToken == null || refreshToken == null) {
       return const Err(UnknownFailure('Resposta inesperada do servidor.'));
@@ -66,6 +71,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
     await _storageService.setAccessToken(accessToken);
     await _storageService.setRefreshToken(refreshToken);
+    await _storageService.setRole(role);
     return const Ok(null);
   }
 }

@@ -1,13 +1,28 @@
-/// Contrato do serviço de imagens (seleção + upload). A implementação
-/// real usa `image_picker` (câmara/galeria) e faz upload para o
-/// Cloudflare R2 através do `ApiService` — usados no Passo 3 (Fotos) do
-/// wizard do cliente e no Passo 5 (Foto) do onboarding de profissional.
-/// Não adicionei o pacote nativo ainda para manter este bloco focado na
-/// fundação; entra junto com esses passos do wizard.
+import 'package:image_picker/image_picker.dart';
+
+/// Seleção de imagens (câmara/galeria). O upload em si (para o Cloudflare
+/// R2, via `POST /storage/upload`) é responsabilidade de
+/// `StorageRepository` — mantém a escolha do ficheiro (preocupação do
+/// dispositivo) separada do envio (preocupação de rede).
 abstract class ImageService {
   Future<String?> pickFromGallery();
   Future<String?> pickFromCamera();
-  Future<String?> uploadImage(String localPath);
+}
+
+class ImageServiceImpl implements ImageService {
+  final _picker = ImagePicker();
+
+  @override
+  Future<String?> pickFromGallery() async {
+    final file = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+    return file?.path;
+  }
+
+  @override
+  Future<String?> pickFromCamera() async {
+    final file = await _picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+    return file?.path;
+  }
 }
 
 class StubImageService implements ImageService {
@@ -16,7 +31,4 @@ class StubImageService implements ImageService {
 
   @override
   Future<String?> pickFromCamera() async => null;
-
-  @override
-  Future<String?> uploadImage(String localPath) async => null;
 }

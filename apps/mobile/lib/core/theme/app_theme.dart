@@ -151,7 +151,7 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: primary.withOpacity(0.15),
+        indicatorColor: primary.withValues(alpha: 0.15),
         labelTextStyle: WidgetStateProperty.all(
           baseTextTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
         ),

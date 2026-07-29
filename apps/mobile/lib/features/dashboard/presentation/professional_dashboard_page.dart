@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/result.dart';
+import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
 import '../../../shared/widgets/app_empty_state.dart';
+import '../../available_requests/presentation/available_requests_page.dart';
 import 'dashboard_scaffold.dart';
 import 'dashboard_tab_stub.dart';
 
@@ -9,8 +13,8 @@ class ProfessionalDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardScaffold(
-      items: const [
+    return const DashboardScaffold(
+      items: [
         AppBottomNavigationItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'Início'),
         AppBottomNavigationItem(icon: Icons.inbox_outlined, selectedIcon: Icons.inbox, label: 'Pedidos'),
         AppBottomNavigationItem(
@@ -20,9 +24,9 @@ class ProfessionalDashboardPage extends StatelessWidget {
         ),
         AppBottomNavigationItem(icon: Icons.person_outline, selectedIcon: Icons.person, label: 'Perfil'),
       ],
-      pages: const [
+      pages: [
         _ProfessionalHomeTab(),
-        DashboardTabStub(title: 'Pedidos disponíveis', icon: Icons.inbox_outlined),
+        AvailableRequestsPage(),
         DashboardTabStub(title: 'Agenda', icon: Icons.calendar_today_outlined),
         _ProfessionalProfileTab(),
       ],
@@ -30,8 +34,29 @@ class ProfessionalDashboardPage extends StatelessWidget {
   }
 }
 
-class _ProfessionalHomeTab extends StatelessWidget {
+class _ProfessionalHomeTab extends ConsumerStatefulWidget {
   const _ProfessionalHomeTab();
+
+  @override
+  ConsumerState<_ProfessionalHomeTab> createState() => _ProfessionalHomeTabState();
+}
+
+class _ProfessionalHomeTabState extends ConsumerState<_ProfessionalHomeTab> {
+  int? _availableCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final result = await ref.read(requestsRepositoryProvider).fetchAvailable();
+    if (!mounted) return;
+    if (result case Ok(:final value)) {
+      setState(() => _availableCount = value.length);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,18 +68,21 @@ class _ProfessionalHomeTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: const [
-                Expanded(child: _StatCard(label: 'Pedidos disponíveis', value: '0')),
-                SizedBox(width: 12),
-                Expanded(child: _StatCard(label: 'Avaliação', value: '—')),
+              children: [
+                Expanded(
+                  child: _StatCard(label: 'Pedidos disponíveis', value: _availableCount?.toString() ?? '—'),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(child: _StatCard(label: 'Avaliação', value: '—')),
               ],
             ),
             const SizedBox(height: 24),
-            const AppEmptyState(
-              icon: Icons.inbox_outlined,
-              title: 'Ainda não há pedidos disponíveis',
-              description: 'Assim que aparecer um pedido compatível, aparece aqui.',
-            ),
+            if (_availableCount == 0)
+              const AppEmptyState(
+                icon: Icons.inbox_outlined,
+                title: 'Ainda não há pedidos disponíveis',
+                description: 'Assim que aparecer um pedido compatível, aparece aqui.',
+              ),
           ],
         ),
       ),

@@ -43,7 +43,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
     switch (result) {
       case Ok():
-        context.go('/');
+        context.go('/dashboard-cliente');
       case Err(:final failure):
         showAppSnackBar(context, failure.message, isError: true);
     }

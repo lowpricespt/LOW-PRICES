@@ -28,7 +28,11 @@ class StepAvailability extends ConsumerWidget {
         children: [
           Text('Quando estás disponível?', style: theme.textTheme.headlineMedium),
           const SizedBox(height: 6),
-          Text('Podes ajustar isto mais tarde nas definições da conta.', style: theme.textTheme.bodyMedium),
+          Text(
+            'Por agora isto fica só guardado neste dispositivo — a disponibilidade semanal real ainda não '
+            'tem suporte no servidor (só bloqueios de datas específicas, na Agenda).',
+            style: theme.textTheme.bodyMedium,
+          ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -55,7 +59,7 @@ class StepAvailability extends ConsumerWidget {
                         border: Border.all(
                           color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
                         ),
-                        color: isSelected ? theme.colorScheme.primary.withOpacity(0.08) : null,
+                        color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.08) : null,
                       ),
                       child: Text(
                         day.label,

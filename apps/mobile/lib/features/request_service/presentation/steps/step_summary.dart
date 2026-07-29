@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/constants/service_categories.dart';
+import '../../../../providers/app_providers.dart';
 import '../../providers/request_service_provider.dart';
 
 const _urgencyLabels = {
@@ -17,10 +17,11 @@ class StepSummary extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final formData = ref.watch(requestServiceProvider).formData;
-    ServiceCategory? category;
-    for (final c in kServiceCategories) {
-      if (c.id == formData.categoryId) {
-        category = c;
+    final categories = ref.watch(categoriesProvider).valueOrNull ?? const [];
+    String? categoryName;
+    for (final category in categories) {
+      if (category.id == formData.categoryId) {
+        categoryName = category.name;
         break;
       }
     }
@@ -39,14 +40,11 @@ class StepSummary extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               children: [
-                _SummaryRow(label: 'Categoria', value: category?.name ?? '—'),
+                _SummaryRow(label: 'Categoria', value: categoryName ?? '—'),
                 _SummaryRow(label: 'Localização', value: formData.location.isEmpty ? '—' : formData.location),
                 _SummaryRow(label: 'Urgência', value: _urgencyLabels[formData.urgency] ?? '—'),
-                _SummaryRow(
-                  label: 'Orçamento',
-                  value: formData.budget.isEmpty ? 'Não indicado' : '${formData.budget} €',
-                  isLast: true,
-                ),
+                _SummaryRow(label: 'Orçamento', value: formData.budget.isEmpty ? 'Não indicado' : '${formData.budget} €'),
+                _SummaryRow(label: 'Fotografias', value: '${formData.photoUrls.length}', isLast: true),
               ],
             ),
           ),

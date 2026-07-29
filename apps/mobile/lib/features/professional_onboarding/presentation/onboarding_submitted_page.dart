@@ -39,8 +39,8 @@ class OnboardingSubmittedPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.go('/'),
-                  child: const Text('Voltar ao início'),
+                  onPressed: () => context.go('/dashboard-profissional'),
+                  child: const Text('Ir para o painel'),
                 ),
               ),
             ],

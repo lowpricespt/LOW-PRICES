@@ -41,6 +41,10 @@ dependencies:
   # Estado de ligação à internet — sem configuração nativa necessária
   connectivity_plus: ^6.0.5
 
+  # Seleção de fotos (câmara/galeria) — wizard de pedido, avatar e
+  # documentação do profissional
+  image_picker: ^1.1.2
+
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

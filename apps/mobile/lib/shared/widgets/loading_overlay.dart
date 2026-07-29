@@ -17,7 +17,7 @@ class LoadingOverlay extends StatelessWidget {
         if (isLoading)
           Positioned.fill(
             child: Container(
-              color: Theme.of(context).colorScheme.surface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
               child: const Center(child: CircularProgressIndicator(strokeWidth: 2.5)),
             ),
           ),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/utils/result.dart';
+import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
 import '../../../shared/widgets/app_empty_state.dart';
 import 'dashboard_scaffold.dart';
@@ -10,8 +13,8 @@ class ClientDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DashboardScaffold(
-      items: const [
+    return const DashboardScaffold(
+      items: [
         AppBottomNavigationItem(icon: Icons.home_outlined, selectedIcon: Icons.home, label: 'Início'),
         AppBottomNavigationItem(
           icon: Icons.assignment_outlined,
@@ -21,7 +24,7 @@ class ClientDashboardPage extends StatelessWidget {
         AppBottomNavigationItem(icon: Icons.chat_bubble_outline, selectedIcon: Icons.chat_bubble, label: 'Mensagens'),
         AppBottomNavigationItem(icon: Icons.person_outline, selectedIcon: Icons.person, label: 'Perfil'),
       ],
-      pages: const [
+      pages: [
         _ClientHomeTab(),
         DashboardTabStub(title: 'Os meus pedidos', icon: Icons.assignment_outlined),
         DashboardTabStub(title: 'Mensagens', icon: Icons.chat_bubble_outline),
@@ -31,8 +34,35 @@ class ClientDashboardPage extends StatelessWidget {
   }
 }
 
-class _ClientHomeTab extends StatelessWidget {
+const _activeStatuses = {'DRAFT', 'PUBLISHED', 'IN_NEGOTIATION', 'SCHEDULED'};
+
+class _ClientHomeTab extends ConsumerStatefulWidget {
   const _ClientHomeTab();
+
+  @override
+  ConsumerState<_ClientHomeTab> createState() => _ClientHomeTabState();
+}
+
+class _ClientHomeTabState extends ConsumerState<_ClientHomeTab> {
+  int? _activeCount;
+  int? _quotesCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final result = await ref.read(requestsRepositoryProvider).fetchMine();
+    if (!mounted) return;
+    if (result case Ok(:final value)) {
+      setState(() {
+        _activeCount = value.where((r) => _activeStatuses.contains(r.status)).length;
+        _quotesCount = value.fold<int>(0, (sum, r) => sum + r.quotesCount);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,22 +74,23 @@ class _ClientHomeTab extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: const [
-                Expanded(child: _StatCard(label: 'Pedidos ativos', value: '0')),
-                SizedBox(width: 12),
-                Expanded(child: _StatCard(label: 'Orçamentos', value: '0')),
+              children: [
+                Expanded(child: _StatCard(label: 'Pedidos ativos', value: _activeCount?.toString() ?? '—')),
+                const SizedBox(width: 12),
+                Expanded(child: _StatCard(label: 'Orçamentos', value: _quotesCount?.toString() ?? '—')),
               ],
             ),
             const SizedBox(height: 24),
-            AppEmptyState(
-              icon: Icons.assignment_outlined,
-              title: 'Ainda não tens pedidos',
-              description: 'Quando pedires um serviço, ele aparece aqui.',
-              action: ElevatedButton(
-                onPressed: () => context.push('/pedir-servico'),
-                child: const Text('Pedir um serviço'),
+            if (_activeCount == 0)
+              AppEmptyState(
+                icon: Icons.assignment_outlined,
+                title: 'Ainda não tens pedidos',
+                description: 'Quando pedires um serviço, ele aparece aqui.',
+                action: ElevatedButton(
+                  onPressed: () => context.push('/pedir-servico'),
+                  child: const Text('Pedir um serviço'),
+                ),
               ),
-            ),
           ],
         ),
       ),

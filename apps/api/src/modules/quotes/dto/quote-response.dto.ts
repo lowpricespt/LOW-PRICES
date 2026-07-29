@@ -12,6 +12,8 @@ export class QuoteResponseDto {
   message!: string | null;
   createdAt!: Date;
   respondedAt!: Date | null;
+  proposedStart!: Date | null;
+  proposedEnd!: Date | null;
   professional!: {
     professionalProfileId: string;
     name: string;
@@ -27,6 +29,8 @@ export class QuoteResponseDto {
       message: entity.message,
       createdAt: entity.createdAt,
       respondedAt: entity.respondedAt,
+      proposedStart: entity.proposedStart,
+      proposedEnd: entity.proposedEnd,
       professional: {
         professionalProfileId: entity.professionalProfileId,
         name: entity.professionalProfile.user.name,

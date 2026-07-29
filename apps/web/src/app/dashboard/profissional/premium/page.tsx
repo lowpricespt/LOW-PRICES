@@ -26,12 +26,19 @@ function formatEuros(cents: number): string {
   return (cents / 100).toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' });
 }
 
-const BENEFITS = [
+const SHARED_BENEFITS = [
   'Acesso a todos os pedidos da tua área e arredores',
   'Sem limite de orçamentos enviados',
   'Destaque nos resultados de pesquisa dos clientes',
   'Estatísticas detalhadas de desempenho',
   'Suporte prioritário',
+];
+
+const WEEKLY_ONLY_BENEFITS = ['Sem compromisso — cancela quando quiseres, semana a semana'];
+
+const MONTHLY_ONLY_BENEFITS = [
+  'Um único pagamento e uma única fatura por mês — só é liquidado IVA sobre os 100€, uma vez',
+  'Mais previsível para a tua contabilidade — 12 faturas por ano em vez de até 52',
 ];
 
 export default function ProfessionalPremiumPage() {
@@ -102,7 +109,11 @@ export default function ProfessionalPremiumPage() {
               {plans ? formatEuros(plans.weekly.amount) : '—'}
               <span className="text-base font-normal text-muted-foreground"> /semana</span>
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">Ideal para testar sem compromisso mensal.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {plans
+                ? `Equivale a ${formatEuros(plans.weekly.amount * 4)} se renovares as 4 semanas do mês`
+                : 'Ideal para testar sem compromisso mensal.'}
+            </p>
             <Button
               className="mt-6 w-full"
               variant="outline"
@@ -111,6 +122,14 @@ export default function ProfessionalPremiumPage() {
             >
               {activatingPlan === 'weekly' ? 'A ativar…' : 'Ativar (grátis — modo piloto)'}
             </Button>
+            <ul className="mt-5 space-y-2">
+              {WEEKLY_ONLY_BENEFITS.map((benefit) => (
+                <li key={benefit} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
           </Card>
 
           <Card className="relative overflow-hidden border-primary p-6">
@@ -125,11 +144,14 @@ export default function ProfessionalPremiumPage() {
               {plans ? formatEuros(plans.monthly.amount) : '—'}
               <span className="text-base font-normal text-muted-foreground"> /mês</span>
             </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {plans
-                ? `Equivale a ${formatEuros(Math.round(plans.monthly.amount / 4))}/semana`
-                : 'O valor com melhor custo-benefício.'}
-            </p>
+            {plans ? (
+              <p className="mt-1 text-sm font-medium text-success">
+                Poupas {formatEuros(plans.weekly.amount * 4 - plans.monthly.amount)}/mês face a pagar 4 semanas
+                separadas ({Math.round((1 - plans.monthly.amount / (plans.weekly.amount * 4)) * 100)}%)
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">O valor com melhor custo-benefício.</p>
+            )}
             <Button
               className="mt-6 w-full"
               disabled={activatingPlan !== null}
@@ -137,14 +159,22 @@ export default function ProfessionalPremiumPage() {
             >
               {activatingPlan === 'monthly' ? 'A ativar…' : 'Ativar (grátis — modo piloto)'}
             </Button>
+            <ul className="mt-5 space-y-2">
+              {MONTHLY_ONLY_BENEFITS.map((benefit) => (
+                <li key={benefit} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <Check className="mt-0.5 size-4 shrink-0 text-primary" />
+                  {benefit}
+                </li>
+              ))}
+            </ul>
           </Card>
         </div>
       )}
 
       <Card className="mt-6 p-6">
-        <h3 className="font-medium">O que está incluído</h3>
+        <h3 className="font-medium">Incluído nos dois planos</h3>
         <ul className="mt-4 space-y-2.5">
-          {BENEFITS.map((benefit) => (
+          {SHARED_BENEFITS.map((benefit) => (
             <li key={benefit} className="flex items-start gap-2.5 text-sm text-muted-foreground">
               <Check className="mt-0.5 size-4 shrink-0 text-primary" />
               {benefit}
@@ -154,6 +184,9 @@ export default function ProfessionalPremiumPage() {
       </Card>
 
       <p className="mt-4 text-xs text-muted-foreground">
+        Preços com IVA incluído (nunca cobrado à parte). Pagar o plano mensal de uma vez significa que o IVA só é
+        liquidado sobre os 100€ — quatro pagamentos semanais separados geram quatro faturas e um total mais alto
+        (4 × {plans ? formatEuros(plans.weekly.amount) : '30€'} = {plans ? formatEuros(plans.weekly.amount * 4) : '120€'}).
         Os valores apresentados vêm diretamente do servidor (nunca escritos aqui). Os pagamentos reais (Stripe)
         ainda não estão ligados — por isso a ativação é gratuita neste piloto; quando o Stripe existir, o botão
         passa a cobrar sem alterações a esta página.

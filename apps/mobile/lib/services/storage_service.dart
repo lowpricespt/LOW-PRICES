@@ -12,6 +12,7 @@ class StorageService {
 
   static const _accessTokenKey = 'low_prices_access_token';
   static const _refreshTokenKey = 'low_prices_refresh_token';
+  static const _roleKey = 'low_prices_role';
 
   Future<String?> getAccessToken() => _storage.read(key: _accessTokenKey);
 
@@ -27,8 +28,21 @@ class StorageService {
     return _storage.write(key: _refreshTokenKey, value: token);
   }
 
+  /// 'CLIENT' | 'PROFESSIONAL' | 'ADMIN' — guardado a partir da resposta de
+  /// login/registo, só para decidir para que dashboard navegar no arranque
+  /// da app sem precisar de um pedido extra a `GET /users/me`. Nunca usado
+  /// para autorização — isso é sempre decidido pelo backend a partir do
+  /// JWT.
+  Future<String?> getRole() => _storage.read(key: _roleKey);
+
+  Future<void> setRole(String? role) {
+    if (role == null) return _storage.delete(key: _roleKey);
+    return _storage.write(key: _roleKey, value: role);
+  }
+
   Future<void> clearSession() => Future.wait([
         _storage.delete(key: _accessTokenKey),
         _storage.delete(key: _refreshTokenKey),
+        _storage.delete(key: _roleKey),
       ]);
 }

@@ -10,15 +10,26 @@ class ProfessionalOnboardingState {
   const ProfessionalOnboardingState({
     this.currentStepIndex = 0,
     this.formData = const ProfessionalOnboardingFormData(),
+    this.password = '',
   });
 
   final int currentStepIndex;
   final ProfessionalOnboardingFormData formData;
 
-  ProfessionalOnboardingState copyWith({int? currentStepIndex, ProfessionalOnboardingFormData? formData}) {
+  /// Nunca gravada em `SharedPreferences` — ver nota em
+  /// `ProfessionalOnboardingFormData.toJson`. Só existe em memória entre
+  /// o Passo 1 e o registo efetivo.
+  final String password;
+
+  ProfessionalOnboardingState copyWith({
+    int? currentStepIndex,
+    ProfessionalOnboardingFormData? formData,
+    String? password,
+  }) {
     return ProfessionalOnboardingState(
       currentStepIndex: currentStepIndex ?? this.currentStepIndex,
       formData: formData ?? this.formData,
+      password: password ?? this.password,
     );
   }
 }
@@ -65,6 +76,12 @@ class ProfessionalOnboardingNotifier extends StateNotifier<ProfessionalOnboardin
   ) {
     state = state.copyWith(formData: update(state.formData));
     _persist();
+  }
+
+  /// Nunca chama `_persist()` — a password fica só em memória, nunca em
+  /// `SharedPreferences` (que não é encriptado).
+  void setPassword(String value) {
+    state = state.copyWith(password: value);
   }
 
   Future<void> reset() async {

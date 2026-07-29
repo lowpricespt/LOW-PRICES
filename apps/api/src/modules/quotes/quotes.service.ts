@@ -47,12 +47,18 @@ export class QuotesService {
     const existing = await this.quotesRepository.findExisting(dto.serviceRequestId, professionalProfileId);
     if (existing) throw new BadRequestException('Já enviaste um orçamento para este pedido.');
 
+    if (dto.proposedStart && dto.proposedEnd && new Date(dto.proposedEnd) <= new Date(dto.proposedStart)) {
+      throw new BadRequestException('A hora de fim proposta tem de ser depois da hora de início.');
+    }
+
     const quote = await this.quotesRepository.create({
       serviceRequestId: dto.serviceRequestId,
       professionalProfileId,
       price: dto.price,
       message: dto.message,
       status: 'SENT',
+      proposedStart: dto.proposedStart ? new Date(dto.proposedStart) : undefined,
+      proposedEnd: dto.proposedEnd ? new Date(dto.proposedEnd) : undefined,
     });
 
     if (request.status === 'PUBLISHED') {
@@ -112,6 +118,11 @@ export class QuotesService {
       serviceRequestId: quote.serviceRequestId,
       quoteId: quote.id,
       status: 'SCHEDULED',
+      // Se o profissional já propôs data/hora ao enviar o orçamento, o
+      // trabalho nasce já agendado — não fica parado em "por agendar" na
+      // Agenda à espera de um passo manual extra.
+      scheduledStart: quote.proposedStart ?? undefined,
+      scheduledEnd: quote.proposedEnd ?? undefined,
     });
 
     await this.notifySafely(

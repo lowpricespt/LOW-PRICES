@@ -34,7 +34,7 @@ class _AppSkeletonState extends State<AppSkeleton> with SingleTickerProviderStat
           width: widget.width,
           height: widget.height,
           decoration: BoxDecoration(
-            color: baseColor.withOpacity(0.5 + (_controller.value * 0.3)),
+            color: baseColor.withValues(alpha: 0.5 + (_controller.value * 0.3)),
             borderRadius: BorderRadius.circular(widget.borderRadius),
           ),
         );

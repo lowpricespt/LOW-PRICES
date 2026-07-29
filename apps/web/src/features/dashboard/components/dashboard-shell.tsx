@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { useRouter, usePathname } from 'next/navigation';
+import { Menu, LogOut } from 'lucide-react';
 import { LogoHorizontal } from '@/components/brand';
 import { Button, Drawer, DrawerContent, DrawerClose, ThemeToggle } from '@/components/ui';
 import {
@@ -12,6 +12,7 @@ import {
   ADMIN_DASHBOARD_NAV,
   type DashboardNavItem,
 } from '@/constants/dashboard-nav';
+import { useAuth } from '@/providers/auth-provider';
 import { cn } from '@/lib/utils';
 
 export type DashboardRole = 'client' | 'professional' | 'admin';
@@ -69,6 +70,39 @@ function NavLinks({
   );
 }
 
+function LogoutButton({ className, onLoggedOut }: { className?: string; onLoggedOut?: () => void }) {
+  const { logout } = useAuth();
+  const router = useRouter();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      // Mesmo que /auth/logout falhe (ex.: sessão já expirada no
+      // servidor), a sessão local já foi limpa por useAuth().logout() —
+      // continuar para o login é sempre seguro.
+    } finally {
+      onLoggedOut?.();
+      router.push('/login');
+    }
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleLogout}
+      disabled={isLoggingOut}
+      className={cn('gap-2 text-muted-foreground hover:text-destructive', className)}
+    >
+      <LogOut className="size-4" />
+      {isLoggingOut ? 'A sair…' : 'Sair'}
+    </Button>
+  );
+}
+
 export function DashboardShell({ role, children }: DashboardShellProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -77,11 +111,14 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
   return (
     <div className="min-h-screen bg-background lg:flex">
       {/* Sidebar — desktop */}
-      <aside className="hidden w-64 shrink-0 border-r border-border p-4 lg:block">
+      <aside className="hidden w-64 shrink-0 border-r border-border p-4 lg:flex lg:flex-col">
         <Link href="/" className="mb-6 block px-2">
           <LogoHorizontal markSize={28} />
         </Link>
         <NavLinks navItems={navItems} pathname={pathname} />
+        <div className="mt-auto border-t border-border pt-3">
+          <LogoutButton className="w-full justify-start" />
+        </div>
       </aside>
 
       <div className="flex-1">
@@ -102,6 +139,9 @@ export function DashboardShell({ role, children }: DashboardShellProps) {
                 <LogoHorizontal markSize={28} />
               </Link>
               <NavLinks navItems={navItems} pathname={pathname} onNavigate={() => setIsMenuOpen(false)} />
+              <div className="mt-4 border-t border-border pt-3">
+                <LogoutButton className="w-full justify-start" onLoggedOut={() => setIsMenuOpen(false)} />
+              </div>
               <DrawerClose className="sr-only" />
             </DrawerContent>
           </Drawer>

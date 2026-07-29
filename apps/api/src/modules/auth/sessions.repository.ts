@@ -32,6 +32,16 @@ export class SessionsRepository {
     });
   }
 
+  /// Usado pelo período de graça da deteção de reutilização (ver
+  /// AuthService.refresh) — dá o token válido MAIS RECENTE de uma sessão,
+  /// independentemente de qual token foi apresentado no pedido.
+  findActiveRefreshTokenForSession(sessionId: string) {
+    return this.prisma.refreshToken.findFirst({
+      where: { sessionId, revokedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   /**
    * Rotação: a linha antiga fica marcada como usada/substituída (nunca
    * apagada — precisamos dela para detetar reutilização), e uma nova

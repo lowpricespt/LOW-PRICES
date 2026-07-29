@@ -63,7 +63,7 @@ class _UrgencyTile extends StatelessWidget {
             color: isSelected ? theme.colorScheme.primary : theme.dividerColor,
             width: isSelected ? 1.5 : 1,
           ),
-          color: isSelected ? theme.colorScheme.primary.withOpacity(0.06) : null,
+          color: isSelected ? theme.colorScheme.primary.withValues(alpha: 0.06) : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Inbox, ChevronDown, ChevronUp, Heart } from 'lucide-react';
+import { Inbox, ChevronDown, ChevronUp, Heart, CalendarClock } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, ErrorState, Skeleton } from '@/components/ui';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
 import { QUOTE_STATUS_LABELS, QUOTE_STATUS_VARIANT } from '@/features/dashboard/status-maps';
@@ -66,6 +66,21 @@ function QuoteRow({
             {quote.price.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })}
           </p>
           {quote.message && <p className="mt-1 text-sm text-muted-foreground">&quot;{quote.message}&quot;</p>}
+          {quote.proposedStart && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-primary">
+              <CalendarClock className="size-3.5 shrink-0" />
+              Propõe vir{' '}
+              {new Date(quote.proposedStart).toLocaleString('pt-PT', {
+                weekday: 'short',
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+              {quote.proposedEnd &&
+                ` – ${new Date(quote.proposedEnd).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`}
+            </p>
+          )}
         </div>
         <Badge variant={QUOTE_STATUS_VARIANT[quote.status] ?? 'secondary'}>
           {QUOTE_STATUS_LABELS[quote.status] ?? quote.status}

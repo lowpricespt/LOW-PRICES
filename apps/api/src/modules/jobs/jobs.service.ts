@@ -6,6 +6,7 @@ import { RequestsRepository } from '../requests/requests.repository';
 import { EmailService } from '../../infra/email/email.service';
 import { JobResponseDto } from './dto/job-response.dto';
 import type { CancelJobDto } from './dto/cancel-job.dto';
+import type { ScheduleJobDto } from './dto/schedule-job.dto';
 
 type JobWithParties = Job & {
   serviceRequest: ServiceRequest & { client: ClientProfile & { user: User } };
@@ -89,6 +90,26 @@ export class JobsService {
       `job concluído, ${jobId}`,
     );
 
+    return this.toDto(updated, false);
+  }
+
+  /// Permite ao profissional atribuir/editar data e hora de um trabalho
+  /// já aceite — preenche `scheduledStart`/`scheduledEnd`, que existiam
+  /// no schema mas nunca eram escritos em lado nenhum. É o que alimenta
+  /// a vista de calendário da Agenda.
+  async schedule(jobId: string, professionalProfileId: string, dto: ScheduleJobDto): Promise<JobResponseDto> {
+    const job = await this.loadOwnedJob(jobId, professionalProfileId);
+    if (!['SCHEDULED', 'IN_PROGRESS'].includes(job.status)) {
+      throw new BadRequestException('Só é possível agendar um trabalho ativo.');
+    }
+
+    const scheduledStart = new Date(dto.scheduledStart);
+    const scheduledEnd = new Date(dto.scheduledEnd);
+    if (scheduledEnd <= scheduledStart) {
+      throw new BadRequestException('A hora de fim tem de ser depois da hora de início.');
+    }
+
+    const updated = await this.jobsRepository.updateStatus(jobId, { scheduledStart, scheduledEnd });
     return this.toDto(updated, false);
   }
 

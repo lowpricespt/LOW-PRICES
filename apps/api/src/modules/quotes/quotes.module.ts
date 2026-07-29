@@ -9,5 +9,6 @@ import { QuotesService } from './quotes.service';
   imports: [RequestsModule, EmailModule],
   controllers: [QuotesController],
   providers: [QuotesService, QuotesRepository],
+  exports: [QuotesRepository],
 })
 export class QuotesModule {}

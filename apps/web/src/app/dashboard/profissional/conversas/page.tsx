@@ -4,7 +4,7 @@ import { ConversationsSection } from '@/features/dashboard/components/conversati
 export default function ProfessionalConversationsPage() {
   return (
     <div>
-      <DashboardPageHeader title="Conversas" description="Fala diretamente com os clientes dos teus trabalhos." />
+      <DashboardPageHeader title="Conversas" description="Fala diretamente com os clientes dos pedidos a que respondeste." />
       <ConversationsSection />
     </div>
   );

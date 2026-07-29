@@ -13,7 +13,7 @@ import {
 
 const POLL_INTERVAL_MS = 5000;
 
-function ConversationThread({ jobId }: { jobId: string }) {
+function ConversationThread({ quoteId }: { quoteId: string }) {
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [error, setError] = useState(false);
   const [draft, setDraft] = useState('');
@@ -21,7 +21,7 @@ function ConversationThread({ jobId }: { jobId: string }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function load() {
-    fetchMessages(jobId)
+    fetchMessages(quoteId)
       .then(setMessages)
       .catch(() => setError(true));
   }
@@ -35,7 +35,7 @@ function ConversationThread({ jobId }: { jobId: string }) {
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [jobId]);
+  }, [quoteId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' });
@@ -46,7 +46,7 @@ function ConversationThread({ jobId }: { jobId: string }) {
     if (!draft.trim()) return;
     setIsSending(true);
     try {
-      await sendMessage(jobId, draft.trim());
+      await sendMessage(quoteId, draft.trim());
       setDraft('');
       load();
     } catch {
@@ -101,7 +101,7 @@ function ConversationThread({ jobId }: { jobId: string }) {
 export function ConversationsSection() {
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
   const [error, setError] = useState(false);
-  const [openJobId, setOpenJobId] = useState<string | null>(null);
+  const [openQuoteId, setOpenQuoteId] = useState<string | null>(null);
 
   function load() {
     fetchMyConversations()
@@ -125,7 +125,7 @@ export function ConversationsSection() {
       <EmptyState
         icon={MessageCircle}
         title="Ainda sem conversas"
-        description="As conversas aparecem aqui assim que tiveres um trabalho com orçamento aceite."
+        description="As conversas aparecem aqui assim que um orçamento for enviado ou recebido num pedido."
       />
     );
   }
@@ -133,10 +133,10 @@ export function ConversationsSection() {
   return (
     <div className="space-y-3">
       {conversations.map((conversation) => (
-        <Card key={conversation.jobId} className="p-4">
+        <Card key={conversation.quoteId} className="p-4">
           <button
             type="button"
-            onClick={() => setOpenJobId(openJobId === conversation.jobId ? null : conversation.jobId)}
+            onClick={() => setOpenQuoteId(openQuoteId === conversation.quoteId ? null : conversation.quoteId)}
             className="flex w-full items-center justify-between gap-3 text-left"
           >
             <div>
@@ -148,7 +148,7 @@ export function ConversationsSection() {
             )}
           </button>
 
-          {openJobId === conversation.jobId && <ConversationThread jobId={conversation.jobId} />}
+          {openQuoteId === conversation.quoteId && <ConversationThread quoteId={conversation.quoteId} />}
         </Card>
       ))}
     </div>

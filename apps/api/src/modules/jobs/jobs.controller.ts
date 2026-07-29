@@ -5,6 +5,7 @@ import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.in
 import { RequestsService } from '../requests/requests.service';
 import { JobsService } from './jobs.service';
 import { CancelJobDto } from './dto/cancel-job.dto';
+import { ScheduleJobDto } from './dto/schedule-job.dto';
 
 @Controller('jobs')
 export class JobsController {
@@ -51,6 +52,18 @@ export class JobsController {
     const professional = await this.requestsService.resolveProfessionalProfile(user.userId);
     if (!professional) throw new BadRequestException('Perfil de profissional não encontrado.');
     return this.jobsService.start(id, professional.id);
+  }
+
+  @Roles('PROFESSIONAL')
+  @Patch(':id/schedule')
+  async schedule(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: ScheduleJobDto,
+  ) {
+    const professional = await this.requestsService.resolveProfessionalProfile(user.userId);
+    if (!professional) throw new BadRequestException('Perfil de profissional não encontrado.');
+    return this.jobsService.schedule(id, professional.id, dto);
   }
 
   @Roles('PROFESSIONAL')

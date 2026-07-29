@@ -3,6 +3,7 @@ import { UsersRepository } from './users.repository';
 import { UserResponseDto } from './dto/user-response.dto';
 import type { UpdateProfileDto } from './dto/update-profile.dto';
 import type { UpdateProfessionalCategoriesDto } from './dto/update-professional-categories.dto';
+import type { UpdateProfessionalProfileDto } from './dto/update-professional-profile.dto';
 import { AuditLogService, AuditAction } from '../audit-log/audit-log.service';
 
 @Injectable()
@@ -49,6 +50,22 @@ export class UsersService {
     });
 
     return { categoryIds: dto.categoryIds };
+  }
+
+  async getProfessionalProfile(userId: string) {
+    const profile = await this.usersRepository.getProfessionalProfile(userId);
+    if (!profile) throw new NotFoundException('Perfil de profissional não encontrado.');
+    return profile;
+  }
+
+  async updateProfessionalProfile(userId: string, dto: UpdateProfessionalProfileDto) {
+    await this.usersRepository.updateProfessionalProfile(userId, dto);
+    await this.auditLogService.record({
+      userId,
+      action: AuditAction.PROFILE_UPDATED,
+      metadata: { fields: Object.keys(dto) },
+    });
+    return this.getProfessionalProfile(userId);
   }
 
   async deleteAccount(userId: string): Promise<void> {

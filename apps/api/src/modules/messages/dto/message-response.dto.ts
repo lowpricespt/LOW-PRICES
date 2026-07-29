@@ -4,7 +4,7 @@ type MessageWithSender = Message & { sender: User };
 
 export class MessageResponseDto {
   id!: string;
-  jobId!: string;
+  quoteId!: string;
   body!: string;
   createdAt!: Date;
   isMine!: boolean;
@@ -13,7 +13,7 @@ export class MessageResponseDto {
   static fromEntity(entity: MessageWithSender, currentUserId: string): MessageResponseDto {
     return {
       id: entity.id,
-      jobId: entity.jobId,
+      quoteId: entity.quoteId,
       body: entity.body,
       createdAt: entity.createdAt,
       isMine: entity.senderUserId === currentUserId,

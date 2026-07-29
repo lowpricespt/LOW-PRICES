@@ -90,6 +90,31 @@ export class UsersRepository {
     ]);
   }
 
+  async getProfessionalProfile(userId: string) {
+    const profile = await this.prisma.professionalProfile.findUnique({
+      where: { userId },
+      select: {
+        bio: true,
+        serviceRadiusKm: true,
+        verificationStatus: true,
+        avatarUrl: true,
+        categories: { select: { category: { select: { id: true, name: true, slug: true } } } },
+      },
+    });
+    if (!profile) return null;
+    return {
+      bio: profile.bio,
+      serviceRadiusKm: profile.serviceRadiusKm,
+      verificationStatus: profile.verificationStatus,
+      avatarUrl: profile.avatarUrl,
+      categories: profile.categories.map((entry) => entry.category),
+    };
+  }
+
+  updateProfessionalProfile(userId: string, data: { bio?: string; serviceRadiusKm?: number }) {
+    return this.prisma.professionalProfile.update({ where: { userId }, data });
+  }
+
   softDelete(id: string): Promise<User> {
     // Nunca apagar o registo fisicamente: mantém integridade referencial
     // com pedidos/avaliações passadas e cumpre requisitos de auditoria.

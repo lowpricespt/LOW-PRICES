@@ -4,6 +4,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateProfessionalCategoriesDto } from './dto/update-professional-categories.dto';
+import { UpdateProfessionalProfileDto } from './dto/update-professional-profile.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -27,6 +28,21 @@ export class UsersController {
     @Body() dto: UpdateProfessionalCategoriesDto,
   ) {
     return this.usersService.setProfessionalCategories(user.userId, dto);
+  }
+
+  @Roles('PROFESSIONAL')
+  @Get('me/professional/profile')
+  getProfessionalProfile(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getProfessionalProfile(user.userId);
+  }
+
+  @Roles('PROFESSIONAL')
+  @Patch('me/professional/profile')
+  updateProfessionalProfile(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateProfessionalProfileDto,
+  ) {
+    return this.usersService.updateProfessionalProfile(user.userId, dto);
   }
 
   @Delete('me')

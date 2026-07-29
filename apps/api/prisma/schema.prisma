@@ -383,6 +383,7 @@ model Quote {
   respondedAt DateTime?
 
   job Job?
+  messages Message[]
 
   @@index([serviceRequestId])
   @@index([professionalProfileId])
@@ -410,28 +411,30 @@ model Job {
   cancelReason   String?
 
   review Review?
-  messages Message[]
 
   @@index([status])
 }
 
-/// Mensagens in-app entre Cliente e Profissional — só existem depois de
-/// um Job existir (ou seja, depois de um orçamento aceite), mesma regra
-/// de "contacto só depois de aceite" já aplicada ao telefone/WhatsApp.
-/// Sem tempo real via WebSocket nesta fase (ver ConversasController) —
-/// o frontend usa polling simples; decisão deliberada para dar Conversas
-/// reais já, sem esperar pela infraestrutura de WebSocket/Redis pub-sub.
+/// Mensagens in-app entre Cliente e Profissional. Ligadas ao Quote (não
+/// ao Job) de propósito: a conversa começa assim que o profissional
+/// responde a um pedido (envia orçamento) — nunca só depois de aceite.
+/// Uma vez aceite, o mesmo Quote passa a ter um Job associado
+/// (Quote.job), por isso a conversa continua a mesma, sem precisar de
+/// migrar mensagens nem duplicar a relação. Sem tempo real via
+/// WebSocket nesta fase (ver MessagesController) — o frontend usa
+/// polling simples; decisão deliberada para dar Conversas reais já, sem
+/// esperar pela infraestrutura de WebSocket/Redis pub-sub.
 model Message {
   id           String   @id @default(uuid())
-  jobId        String
-  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  quoteId      String
+  quote        Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   senderUserId String
   sender       User     @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
   body         String
   createdAt    DateTime @default(now())
   readAt       DateTime?
 
-  @@index([jobId, createdAt])
+  @@index([quoteId, createdAt])
 }
 
 /// Avaliação do Cliente ao Profissional, no final de um Job — uma por

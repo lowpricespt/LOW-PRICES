@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JobsRepository } from '../jobs/jobs.repository';
+import { QuotesRepository } from '../quotes/quotes.repository';
 import { RequestsService } from '../requests/requests.service';
 import { EmailService } from '../../infra/email/email.service';
 import { MessagesRepository } from './messages.repository';
@@ -16,42 +16,41 @@ export class MessagesService {
 
   constructor(
     private readonly messagesRepository: MessagesRepository,
-    private readonly jobsRepository: JobsRepository,
+    private readonly quotesRepository: QuotesRepository,
     private readonly requestsService: RequestsService,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
   ) {}
 
   /**
-   * Só o cliente dono ou o profissional do orçamento aceite deste Job
-   * podem ver/enviar mensagens — mesma regra de posse usada em
-   * JobsService, aqui verificada pelo `userId` (não pelo profileId,
-   * porque quem manda a mensagem é sempre a pessoa/User, não o perfil).
+   * A conversa começa assim que o profissional envia um orçamento — não
+   * é preciso o cliente já o ter aceite. Só o cliente dono do pedido ou
+   * o profissional que enviou este orçamento podem ver/enviar mensagens.
    */
-  private async loadAuthorizedJob(jobId: string, userId: string) {
-    const job = await this.jobsRepository.findById(jobId);
-    if (!job) throw new NotFoundException('Trabalho não encontrado.');
+  private async loadAuthorizedQuote(quoteId: string, userId: string) {
+    const quote = await this.quotesRepository.findByIdWithParties(quoteId);
+    if (!quote) throw new NotFoundException('Orçamento não encontrado.');
 
-    const isClient = job.serviceRequest.client.user.id === userId;
-    const isProfessional = job.quote.professionalProfile.user.id === userId;
+    const isClient = quote.serviceRequest.client.user.id === userId;
+    const isProfessional = quote.professionalProfile.user.id === userId;
     if (!isClient && !isProfessional) throw new ForbiddenException('Esta conversa não te pertence.');
 
-    return { job, isClient };
+    return { quote, isClient };
   }
 
-  async findByJob(jobId: string, requester: RequestingUser): Promise<MessageResponseDto[]> {
-    const { job } = await this.loadAuthorizedJob(jobId, requester.userId);
-    await this.messagesRepository.markReadForViewer(jobId, requester.userId);
-    const messages = await this.messagesRepository.findByJob(job.id);
+  async findByQuote(quoteId: string, requester: RequestingUser): Promise<MessageResponseDto[]> {
+    const { quote } = await this.loadAuthorizedQuote(quoteId, requester.userId);
+    await this.messagesRepository.markReadForViewer(quoteId, requester.userId);
+    const messages = await this.messagesRepository.findByQuote(quote.id);
     return messages.map((message) => MessageResponseDto.fromEntity(message, requester.userId));
   }
 
-  async send(jobId: string, requester: RequestingUser, body: string): Promise<MessageResponseDto> {
-    const { job, isClient } = await this.loadAuthorizedJob(jobId, requester.userId);
+  async send(quoteId: string, requester: RequestingUser, body: string): Promise<MessageResponseDto> {
+    const { quote, isClient } = await this.loadAuthorizedQuote(quoteId, requester.userId);
 
-    const message = await this.messagesRepository.create(jobId, requester.userId, body);
+    const message = await this.messagesRepository.create(quoteId, requester.userId, body);
 
-    const recipient = isClient ? job.quote.professionalProfile.user : job.serviceRequest.client.user;
+    const recipient = isClient ? quote.professionalProfile.user : quote.serviceRequest.client.user;
     const siteUrl = this.configService.get<string>('CORS_ORIGIN')?.split(',')[0] ?? '';
     const conversationUrl = `${siteUrl}/dashboard/${isClient ? 'profissional' : 'cliente'}/conversas`;
 
@@ -61,39 +60,39 @@ export class MessagesService {
         subject: 'Nova mensagem — Low Prices',
         html: `
           <p>Olá ${recipient.name},</p>
-          <p>Tens uma nova mensagem sobre o trabalho de <strong>${job.serviceRequest.description.slice(0, 80)}</strong>:</p>
+          <p>Tens uma nova mensagem sobre o pedido de <strong>${quote.serviceRequest.description.slice(0, 80)}</strong>:</p>
           <p>"${body.slice(0, 300)}"</p>
           <p><a href="${conversationUrl}">Responder</a></p>
         `,
       });
     } catch (error) {
-      this.logger.error(`Falha ao notificar nova mensagem (job ${jobId}): ${error instanceof Error ? error.message : error}`);
+      this.logger.error(`Falha ao notificar nova mensagem (orçamento ${quoteId}): ${error instanceof Error ? error.message : error}`);
     }
 
     return MessageResponseDto.fromEntity(message, requester.userId);
   }
 
   async findMyConversations(userId: string, role: 'CLIENT' | 'PROFESSIONAL') {
-    let jobs: Awaited<ReturnType<JobsRepository['findManyForClient']>>;
+    let quotes: Awaited<ReturnType<QuotesRepository['findManyForClient']>>;
 
     if (role === 'CLIENT') {
       const clientProfileId = await this.requestsService.resolveClientProfileId(userId);
-      jobs = clientProfileId ? await this.jobsRepository.findManyForClient(clientProfileId) : [];
+      quotes = clientProfileId ? await this.quotesRepository.findManyForClient(clientProfileId) : [];
     } else {
       const professional = await this.requestsService.resolveProfessionalProfile(userId);
-      jobs = professional ? await this.jobsRepository.findManyForProfessional(professional.id) : [];
+      quotes = professional ? await this.quotesRepository.findManyByProfessional(professional.id) : [];
     }
 
     const conversations = await Promise.all(
-      jobs.map(async (job) => {
-        const unreadCount = await this.messagesRepository.countUnreadForViewer(job.id, userId);
+      quotes.map(async (quote) => {
+        const unreadCount = await this.messagesRepository.countUnreadForViewer(quote.id, userId);
         const otherParty =
-          role === 'CLIENT' ? job.quote.professionalProfile.user.name : job.serviceRequest.client.user.name;
+          role === 'CLIENT' ? quote.professionalProfile.user.name : quote.serviceRequest.client.user.name;
         return {
-          jobId: job.id,
-          serviceRequestTitle: job.serviceRequest.description.slice(0, 80),
+          quoteId: quote.id,
+          serviceRequestTitle: quote.serviceRequest.description.slice(0, 80),
           otherPartyName: otherParty,
-          status: job.status,
+          status: quote.status,
           unreadCount,
         };
       }),

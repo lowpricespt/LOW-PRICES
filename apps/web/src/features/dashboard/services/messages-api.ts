@@ -1,7 +1,7 @@
 import { apiClient } from '@/services/api';
 
 export interface Conversation {
-  jobId: string;
+  quoteId: string;
   serviceRequestTitle: string;
   otherPartyName: string;
   status: string;
@@ -10,7 +10,7 @@ export interface Conversation {
 
 export interface Message {
   id: string;
-  jobId: string;
+  quoteId: string;
   body: string;
   createdAt: string;
   isMine: boolean;
@@ -22,12 +22,12 @@ export async function fetchMyConversations(): Promise<Conversation[]> {
   return data;
 }
 
-export async function fetchMessages(jobId: string): Promise<Message[]> {
-  const { data } = await apiClient.get<Message[]>(`/jobs/${jobId}/messages`);
+export async function fetchMessages(quoteId: string): Promise<Message[]> {
+  const { data } = await apiClient.get<Message[]>(`/quotes/${quoteId}/messages`);
   return data;
 }
 
-export async function sendMessage(jobId: string, body: string): Promise<Message> {
-  const { data } = await apiClient.post<Message>(`/jobs/${jobId}/messages`, { body });
+export async function sendMessage(quoteId: string, body: string): Promise<Message> {
+  const { data } = await apiClient.post<Message>(`/quotes/${quoteId}/messages`, { body });
   return data;
 }

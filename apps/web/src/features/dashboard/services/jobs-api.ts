@@ -39,3 +39,8 @@ export async function cancelJob(jobId: string, reason?: string): Promise<Job> {
   const { data } = await apiClient.patch<Job>(`/jobs/${jobId}/cancel`, { reason });
   return data;
 }
+
+export async function scheduleJob(jobId: string, scheduledStart: string, scheduledEnd: string): Promise<Job> {
+  const { data } = await apiClient.patch<Job>(`/jobs/${jobId}/schedule`, { scheduledStart, scheduledEnd });
+  return data;
+}

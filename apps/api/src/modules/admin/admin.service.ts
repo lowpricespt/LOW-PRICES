@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
+import { StorageService } from '../../infra/storage/storage.service';
 import { AuditLogService, AuditAction } from '../audit-log/audit-log.service';
 import type { UpdateVerificationDto } from './dto/update-verification.dto';
 
@@ -21,6 +22,7 @@ import type { UpdateVerificationDto } from './dto/update-verification.dto';
 export class AdminService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly storageService: StorageService,
     private readonly auditLog: AuditLogService,
   ) {}
 
@@ -51,17 +53,27 @@ export class AdminService {
       },
     });
 
-    return professionals.map((professional) => ({
-      id: professional.id,
-      bio: professional.bio,
-      serviceRadiusKm: professional.serviceRadiusKm,
-      verificationStatus: professional.verificationStatus,
-      createdAt: professional.createdAt,
-      user: professional.user,
-      categories: professional.categories.map((link) => link.category),
-      documents: professional.documents,
-      city: professional.addresses[0]?.city ?? null,
-    }));
+    return Promise.all(
+      professionals.map(async (professional) => ({
+        id: professional.id,
+        bio: professional.bio,
+        serviceRadiusKm: professional.serviceRadiusKm,
+        verificationStatus: professional.verificationStatus,
+        createdAt: professional.createdAt,
+        user: professional.user,
+        categories: professional.categories.map((link) => link.category),
+        // `document.fileUrl` guarda a KEY do storage (pasta privada), nunca
+        // a URL final — uma assinada expira (1h), por isso gera-se sempre
+        // uma fresca aqui em vez de devolver a key crua ou uma URL congelada.
+        documents: await Promise.all(
+          professional.documents.map(async (document) => ({
+            ...document,
+            fileUrl: document.fileUrl ? await this.storageService.getFreshSignedUrl(document.fileUrl) : null,
+          })),
+        ),
+        city: professional.addresses[0]?.city ?? null,
+      })),
+    );
   }
 
   async updateVerification(professionalProfileId: string, dto: UpdateVerificationDto, adminUserId: string) {

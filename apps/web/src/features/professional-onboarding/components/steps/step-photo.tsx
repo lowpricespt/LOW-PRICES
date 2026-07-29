@@ -1,11 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Camera } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AvatarUpload } from '@/components/ui';
+import { updateProfileRequest } from '@/features/profile/services/profile-api';
 
 export function StepPhoto() {
-  const [hasPhoto, setHasPhoto] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  async function handleUploaded(result: { url: string }) {
+    setAvatarUrl(result.url);
+    setSaveError(null);
+    try {
+      await updateProfileRequest({ avatarUrl: result.url });
+    } catch {
+      setSaveError('A foto foi enviada, mas não foi possível associá-la ao perfil. Tenta novamente.');
+    }
+  }
 
   return (
     <div>
@@ -16,17 +27,10 @@ export function StepPhoto() {
         Perfis com fotografia geram mais confiança e mais pedidos aceites.
       </p>
 
-      <button
-        type="button"
-        onClick={() => setHasPhoto(true)}
-        className={cn(
-          'mx-auto mt-8 flex size-32 flex-col items-center justify-center gap-2 rounded-full border-2 border-dashed text-muted-foreground transition-colors',
-          hasPhoto ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/40',
-        )}
-      >
-        <Camera className="size-6" />
-        <span className="text-xs">{hasPhoto ? 'Foto adicionada' : 'Adicionar foto'}</span>
-      </button>
+      <div className="mt-8 flex justify-center">
+        <AvatarUpload currentUrl={avatarUrl} folder="avatars" size={128} onUploaded={handleUploaded} />
+      </div>
+      {saveError ? <p className="mt-3 text-center text-sm text-destructive">{saveError}</p> : null}
     </div>
   );
 }

@@ -63,6 +63,7 @@ export function RequestServiceWizard() {
         const created = await createServiceRequest({
           categoryId: formData.categoryId!,
           description: formData.description,
+          photoUrls: formData.photoUrls,
           location: formData.location,
           latitude: formData.latitude ?? undefined,
           longitude: formData.longitude ?? undefined,

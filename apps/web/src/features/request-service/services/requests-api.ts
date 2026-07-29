@@ -48,6 +48,7 @@ export interface ServiceRequestResponse {
 export async function createServiceRequest(params: {
   categoryId: string;
   description: string;
+  photoUrls?: string[];
   location: string;
   latitude?: number;
   longitude?: number;

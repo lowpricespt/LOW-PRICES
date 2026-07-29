@@ -22,6 +22,7 @@ import { FavoritesModule } from './modules/favorites/favorites.module';
 import { NotificationPreferencesModule } from './modules/notification-preferences/notification-preferences.module';
 import { AddressesModule } from './modules/addresses/addresses.module';
 import { MessagesModule } from './modules/messages/messages.module';
+import { DocumentsModule } from './modules/documents/documents.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { MessagesModule } from './modules/messages/messages.module';
     NotificationPreferencesModule,
     AddressesModule,
     MessagesModule,
+    DocumentsModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: GlobalExceptionFilter },

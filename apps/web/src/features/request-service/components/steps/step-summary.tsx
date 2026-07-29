@@ -31,7 +31,7 @@ export function StepSummary() {
         <SummaryRow label="Localização" value={formData.location || '—'} />
         <SummaryRow label="Urgência" value={urgency?.label ?? '—'} />
         <SummaryRow label="Orçamento" value={formData.budget ? `${formData.budget} €` : 'Não indicado'} />
-        <SummaryRow label="Fotografias" value={`${formData.photoCount}`} />
+        <SummaryRow label="Fotografias" value={`${formData.photoUrls.length}`} />
       </div>
 
       {formData.description ? (

@@ -14,6 +14,7 @@ import {
   BarChart3,
   Wallet,
   Crown,
+  ShieldCheck,
 } from 'lucide-react';
 
 export interface DashboardNavItem {
@@ -56,4 +57,14 @@ export const PROFESSIONAL_DASHBOARD_NAV: DashboardNavItem[] = [
   { id: 'premium', label: 'Plano Premium', href: '/dashboard/profissional/premium', icon: Crown },
   { id: 'perfil', label: 'Perfil', href: '/dashboard/profissional/perfil', icon: User },
   { id: 'definicoes', label: 'Definições', href: '/dashboard/profissional/definicoes', icon: Settings },
+];
+
+/**
+ * Painel de administração — deliberadamente mínimo (ver
+ * apps/api/src/modules/admin/admin.service.ts): só verificação de
+ * profissionais, pensado para um piloto com dezenas de contas, não um
+ * painel completo. Evolui quando o volume justificar.
+ */
+export const ADMIN_DASHBOARD_NAV: DashboardNavItem[] = [
+  { id: 'verificacao', label: 'Verificação de profissionais', href: '/admin', icon: ShieldCheck },
 ];

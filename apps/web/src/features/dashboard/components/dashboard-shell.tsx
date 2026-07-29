@@ -9,11 +9,12 @@ import { Button, Drawer, DrawerContent, DrawerClose, ThemeToggle } from '@/compo
 import {
   CLIENT_DASHBOARD_NAV,
   PROFESSIONAL_DASHBOARD_NAV,
+  ADMIN_DASHBOARD_NAV,
   type DashboardNavItem,
 } from '@/constants/dashboard-nav';
 import { cn } from '@/lib/utils';
 
-export type DashboardRole = 'client' | 'professional';
+export type DashboardRole = 'client' | 'professional' | 'admin';
 
 export interface DashboardShellProps {
   role: DashboardRole;
@@ -31,6 +32,7 @@ export interface DashboardShellProps {
 const NAV_ITEMS_BY_ROLE: Record<DashboardRole, DashboardNavItem[]> = {
   client: CLIENT_DASHBOARD_NAV,
   professional: PROFESSIONAL_DASHBOARD_NAV,
+  admin: ADMIN_DASHBOARD_NAV,
 };
 
 function NavLinks({

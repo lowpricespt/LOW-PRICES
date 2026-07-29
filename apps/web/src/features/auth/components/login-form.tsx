@@ -23,7 +23,9 @@ export function LoginForm() {
     try {
       const user = await login(email, password);
       const next = searchParams.get('next');
-      router.push(next ?? (user.role === 'PROFESSIONAL' ? '/dashboard/profissional' : '/dashboard/cliente'));
+      const defaultDestination =
+        user.role === 'ADMIN' ? '/admin' : user.role === 'PROFESSIONAL' ? '/dashboard/profissional' : '/dashboard/cliente';
+      router.push(next ?? defaultDestination);
     } catch (err) {
       setError((err as ApiError).message ?? 'Não foi possível entrar. Tenta novamente.');
     } finally {

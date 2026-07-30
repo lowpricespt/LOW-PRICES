@@ -110,12 +110,12 @@ class _ClientProfileTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const items = [
-      (icon: Icons.inbox_outlined, label: 'Propostas recebidas'),
-      (icon: Icons.favorite_border, label: 'Favoritos'),
-      (icon: Icons.history, label: 'Histórico'),
-      (icon: Icons.notifications_none, label: 'Notificações'),
-      (icon: Icons.settings_outlined, label: 'Definições'),
+    final items = [
+      (icon: Icons.inbox_outlined, label: 'Propostas recebidas', route: null),
+      (icon: Icons.favorite_border, label: 'Favoritos', route: null),
+      (icon: Icons.history, label: 'Histórico', route: null),
+      (icon: Icons.notifications_none, label: 'Notificações', route: null),
+      (icon: Icons.settings_outlined, label: 'Definições', route: '/definicoes'),
     ];
 
     return Scaffold(
@@ -124,10 +124,15 @@ class _ClientProfileTab extends ConsumerWidget {
         children: [
           for (final item in items)
             ListTile(
-              leading: Icon(item.icon),
-              title: Text(item.label),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              leading: Icon(item.icon, color: item.route == null ? Theme.of(context).disabledColor : null),
+              title: Text(
+                item.label,
+                style: item.route == null ? TextStyle(color: Theme.of(context).disabledColor) : null,
+              ),
+              trailing: item.route == null
+                  ? Text('Brevemente', style: Theme.of(context).textTheme.bodySmall)
+                  : const Icon(Icons.chevron_right),
+              onTap: item.route == null ? null : () => context.push(item.route!),
             ),
           const Divider(height: 32),
           ListTile(

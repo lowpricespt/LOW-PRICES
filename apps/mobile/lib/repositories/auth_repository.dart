@@ -18,6 +18,12 @@ abstract class AuthRepository {
 
   Future<void> logout();
 
+  Future<Result<void>> changePassword({required String currentPassword, required String newPassword});
+
+  Future<Result<void>> requestEmailChange({required String newEmail, required String currentPassword});
+
+  Future<Result<void>> deleteAccount();
+
   Future<bool> hasActiveSession();
 
   /// 'CLIENT' | 'PROFESSIONAL' | 'ADMIN', ou `null` sem sessão — usado só
@@ -49,6 +55,21 @@ class StubAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {}
+
+  @override
+  Future<Result<void>> changePassword({required String currentPassword, required String newPassword}) async {
+    return const Err(UnknownFailure('Autenticação real ainda não implementada.'));
+  }
+
+  @override
+  Future<Result<void>> requestEmailChange({required String newEmail, required String currentPassword}) async {
+    return const Err(UnknownFailure('Autenticação real ainda não implementada.'));
+  }
+
+  @override
+  Future<Result<void>> deleteAccount() async {
+    return const Err(UnknownFailure('Autenticação real ainda não implementada.'));
+  }
 
   @override
   Future<bool> hasActiveSession() async => false;

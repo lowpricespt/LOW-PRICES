@@ -78,9 +78,7 @@ class _ProfessionalOnboardingWizardPageState extends ConsumerState<ProfessionalO
 
   /// Cada passo com um endpoint real por trás grava assim que se avança
   /// dele — a conta fica utilizável (autenticada) logo depois do Passo 1,
-  /// e o resto vai persistindo incrementalmente. Passos sem endpoint
-  /// (Localização, Disponibilidade — ver notas nos respetivos ficheiros)
-  /// só avançam localmente, tal como no website.
+  /// e o resto vai persistindo incrementalmente.
   Future<bool> _submitStep(ProfessionalOnboardingState state) async {
     final index = state.currentStepIndex;
     final data = state.formData;
@@ -106,10 +104,33 @@ class _ProfessionalOnboardingWizardPageState extends ConsumerState<ProfessionalO
       };
     }
 
+    if (index == 2) {
+      final result = await ref.read(professionalRepositoryProvider).updateProfile(serviceRadiusKm: data.radiusKm);
+      return switch (result) {
+        Ok() => true,
+        Err(:final failure) => _fail(failure.message),
+      };
+    }
+
+    if (index == 3) {
+      final result = await ref.read(professionalRepositoryProvider).updateProfile(location: data.location.trim());
+      return switch (result) {
+        Ok() => true,
+        Err(:final failure) => _fail(failure.message),
+      };
+    }
+
     if (index == 5) {
-      final result = await ref
-          .read(professionalRepositoryProvider)
-          .updateProfile(bio: data.description.trim(), serviceRadiusKm: data.radiusKm);
+      final result = await ref.read(professionalRepositoryProvider).updateProfile(bio: data.description.trim());
+      return switch (result) {
+        Ok() => true,
+        Err(:final failure) => _fail(failure.message),
+      };
+    }
+
+    if (index == 7) {
+      final result =
+          await ref.read(professionalRepositoryProvider).updateProfile(availableDays: data.availableDayIds);
       return switch (result) {
         Ok() => true,
         Err(:final failure) => _fail(failure.message),

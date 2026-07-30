@@ -96,6 +96,10 @@ export class UsersRepository {
       select: {
         bio: true,
         serviceRadiusKm: true,
+        location: true,
+        latitude: true,
+        longitude: true,
+        availableDays: true,
         verificationStatus: true,
         avatarUrl: true,
         categories: { select: { category: { select: { id: true, name: true, slug: true } } } },
@@ -105,13 +109,27 @@ export class UsersRepository {
     return {
       bio: profile.bio,
       serviceRadiusKm: profile.serviceRadiusKm,
+      location: profile.location,
+      latitude: profile.latitude,
+      longitude: profile.longitude,
+      availableDays: profile.availableDays,
       verificationStatus: profile.verificationStatus,
       avatarUrl: profile.avatarUrl,
       categories: profile.categories.map((entry) => entry.category),
     };
   }
 
-  updateProfessionalProfile(userId: string, data: { bio?: string; serviceRadiusKm?: number }) {
+  updateProfessionalProfile(
+    userId: string,
+    data: {
+      bio?: string;
+      serviceRadiusKm?: number;
+      location?: string;
+      latitude?: number;
+      longitude?: number;
+      availableDays?: string[];
+    },
+  ) {
     return this.prisma.professionalProfile.update({ where: { userId }, data });
   }
 

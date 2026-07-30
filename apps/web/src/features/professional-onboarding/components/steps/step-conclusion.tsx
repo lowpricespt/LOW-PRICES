@@ -1,6 +1,10 @@
 import { PartyPopper } from 'lucide-react';
 
-export function StepConclusion() {
+export interface StepConclusionProps {
+  error?: string | null;
+}
+
+export function StepConclusion({ error }: StepConclusionProps) {
   return (
     <div>
       <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -16,6 +20,7 @@ export function StepConclusion() {
           Assim que aprovarmos o teu perfil, começas a receber pedidos da tua zona.
         </p>
       </div>
+      {error ? <p className="mt-3 text-center text-sm text-destructive">{error}</p> : null}
     </div>
   );
 }

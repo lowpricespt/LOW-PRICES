@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { WizardShell } from '@/components/wizard';
 import { useAuth } from '@/providers/auth-provider';
 import type { ApiError } from '@/services/api';
+import type { ParsedGooglePlace } from '@/components/ui/address-autocomplete';
+import { updateProfessionalProfileRequest } from '@/features/profile/services/professional-profile-api';
 import { updateProfessionalCategories } from '../services/professional-onboarding-api';
 import { PROFESSIONAL_ONBOARDING_STEPS } from '../constants/steps';
 import { StepAccount } from './steps/step-account';
@@ -33,11 +35,12 @@ export function ProfessionalOnboardingWizard() {
   const [isSubmittingAccount, setIsSubmittingAccount] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
 
-  // Passo 1 (Conta) e Passo 2 (Categorias) já estão ligados ao backend —
-  // são os únicos com endpoint pronto e cujo dado é indispensável para o
-  // matching funcionar (ver MatchingService). Os restantes passos
-  // (localização, raio, documentos, portefólio, etc.) continuam visuais
-  // até o Perfil do Especialista ser construído por completo.
+  // Conta e Categorias gravam logo que se avança de cada um desses dois
+  // passos (dados indispensáveis para o matching — ver MatchingService).
+  // Raio/Localização/Descrição/Disponibilidade ficam só em estado local
+  // até ao fim do assistente, e são gravados todos de uma vez com
+  // `updateProfessionalProfileRequest` no último passo — o mesmo perfil
+  // pode depois ser editado a qualquer momento em "Perfil".
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +48,18 @@ export function ProfessionalOnboardingWizard() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [isSubmittingCategories, setIsSubmittingCategories] = useState(false);
+
+  const [radiusKm, setRadiusKm] = useState(15);
+  const [location, setLocation] = useState('');
+  const [coordinates, setCoordinates] = useState<{ latitude?: number; longitude?: number }>({});
+  const [description, setDescription] = useState('');
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [isSubmittingProfile, setIsSubmittingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
+  function toggleDay(dayId: string) {
+    setAvailableDays((prev) => (prev.includes(dayId) ? prev.filter((id) => id !== dayId) : [...prev, dayId]));
+  }
 
   if (isSubmitted) {
     return <OnboardingSubmitted />;
@@ -109,7 +124,23 @@ export function ProfessionalOnboardingWizard() {
     }
 
     if (isLastStep) {
-      setIsSubmitted(true);
+      setProfileError(null);
+      setIsSubmittingProfile(true);
+      try {
+        await updateProfessionalProfileRequest({
+          bio: description.trim() || undefined,
+          serviceRadiusKm: radiusKm,
+          location: location.trim() || undefined,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          availableDays,
+        });
+        setIsSubmitted(true);
+      } catch (err) {
+        setProfileError((err as ApiError).message ?? 'Não foi possível guardar o perfil. Tenta novamente.');
+      } finally {
+        setIsSubmittingProfile(false);
+      }
       return;
     }
 
@@ -128,7 +159,7 @@ export function ProfessionalOnboardingWizard() {
       onNext={handleNext}
       exitHref="/"
       nextLabel={isLastStep ? 'Concluir registo' : 'Continuar'}
-      isSubmitting={isSubmittingAccount || isSubmittingCategories}
+      isSubmitting={isSubmittingAccount || isSubmittingCategories || isSubmittingProfile}
     >
       {isAccountStep && (
         <StepAccount
@@ -144,13 +175,19 @@ export function ProfessionalOnboardingWizard() {
       {isCategoriesStep && (
         <StepCategories selected={selectedCategories} onToggle={toggleCategory} error={categoriesError} />
       )}
-      {currentStepIndex === 2 && <StepRadius />}
-      {currentStepIndex === 3 && <StepLocation />}
+      {currentStepIndex === 2 && <StepRadius radiusKm={radiusKm} onRadiusChange={setRadiusKm} />}
+      {currentStepIndex === 3 && (
+        <StepLocation
+          location={location}
+          onLocationChange={setLocation}
+          onPlaceSelected={(place) => setCoordinates({ latitude: place.latitude ?? undefined, longitude: place.longitude ?? undefined })}
+        />
+      )}
       {currentStepIndex === 4 && <StepPhoto />}
-      {currentStepIndex === 5 && <StepDescription />}
+      {currentStepIndex === 5 && <StepDescription description={description} onDescriptionChange={setDescription} />}
       {currentStepIndex === 6 && <StepDocumentation />}
-      {currentStepIndex === 7 && <StepAvailability />}
-      {currentStepIndex === 8 && <StepConclusion />}
+      {currentStepIndex === 7 && <StepAvailability selectedDays={availableDays} onToggleDay={toggleDay} />}
+      {currentStepIndex === 8 && <StepConclusion error={profileError} />}
     </WizardShell>
   );
 }

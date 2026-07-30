@@ -19,7 +19,8 @@ class StepRadius extends ConsumerWidget {
           Text('Até onde estás disposto a deslocar-te?', style: theme.textTheme.headlineMedium),
           const SizedBox(height: 6),
           Text(
-            'Só vais receber pedidos dentro deste raio a partir da tua localização.',
+            'Guardado no teu perfil para quando a filtragem por distância real for ativada — por agora, '
+            'a categoria escolhida é o que decide que pedidos vês.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),

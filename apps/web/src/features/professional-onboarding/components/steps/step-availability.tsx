@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { WEEKDAYS } from '../../constants/steps';
 
-export function StepAvailability() {
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+export interface StepAvailabilityProps {
+  selectedDays: string[];
+  onToggleDay: (id: string) => void;
+}
 
-  function toggleDay(id: string) {
-    setSelectedDays((prev) => (prev.includes(id) ? prev.filter((day) => day !== id) : [...prev, id]));
-  }
-
+export function StepAvailability({ selectedDays, onToggleDay }: StepAvailabilityProps) {
   return (
     <div>
       <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">
@@ -25,7 +23,7 @@ export function StepAvailability() {
             <button
               key={day.id}
               type="button"
-              onClick={() => toggleDay(day.id)}
+              onClick={() => onToggleDay(day.id)}
               className={cn(
                 'flex flex-col items-center gap-1 rounded-xl border py-3 text-xs font-medium transition-colors',
                 isSelected

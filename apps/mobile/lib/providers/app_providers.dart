@@ -7,6 +7,7 @@ import '../repositories/categories_repository.dart';
 import '../repositories/documents_repository.dart';
 import '../repositories/jobs_repository.dart';
 import '../repositories/messages_repository.dart';
+import '../repositories/pricing_repository.dart';
 import '../repositories/professional_repository.dart';
 import '../repositories/quotes_repository.dart';
 import '../repositories/requests_repository.dart';
@@ -80,6 +81,10 @@ final jobsRepositoryProvider = Provider<JobsRepository>((ref) {
 
 final reviewsRepositoryProvider = Provider<ReviewsRepository>((ref) {
   return ReviewsRepository(ref.watch(apiServiceProvider));
+});
+
+final pricingRepositoryProvider = Provider<PricingRepository>((ref) {
+  return PricingRepository(ref.watch(apiServiceProvider));
 });
 
 /// Categorias reais vindas da API (`GET /categories`, endpoint público) —

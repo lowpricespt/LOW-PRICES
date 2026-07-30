@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { AvatarUpload, Badge, Button, Card, Input, Skeleton } from '@/components/ui';
+import { AddressAutocomplete, type ParsedGooglePlace } from '@/components/ui/address-autocomplete';
 import { DashboardPageHeader } from '@/features/dashboard/components/page-header';
 import { useAuth } from '@/providers/auth-provider';
 import { useServiceCategories } from '@/hooks/use-service-categories';
@@ -10,6 +11,7 @@ import { updateProfileRequest } from '@/features/profile/services/profile-api';
 import {
   fetchProfessionalProfile,
   updateProfessionalProfileRequest,
+  WEEKDAY_OPTIONS,
   type ProfessionalProfileDetails,
 } from '@/features/profile/services/professional-profile-api';
 import { updateProfessionalCategories } from '@/features/professional-onboarding/services/professional-onboarding-api';
@@ -50,6 +52,9 @@ export default function ProfessionalProfilePage() {
   const [bio, setBio] = useState('');
   const [radius, setRadius] = useState(String(MIN_RADIUS));
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [location, setLocation] = useState('');
+  const [coordinates, setCoordinates] = useState<{ latitude?: number; longitude?: number }>({});
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
 
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -62,6 +67,9 @@ export default function ProfessionalProfilePage() {
         setBio(data.bio ?? '');
         setRadius(String(data.serviceRadiusKm));
         setSelectedCategoryIds(data.categories.map((category) => category.id));
+        setLocation(data.location ?? '');
+        setCoordinates({ latitude: data.latitude ?? undefined, longitude: data.longitude ?? undefined });
+        setAvailableDays(data.availableDays);
       })
       .catch(() => setError('Não foi possível carregar o teu perfil.'));
   }
@@ -72,6 +80,16 @@ export default function ProfessionalProfilePage() {
     setSelectedCategoryIds((current) =>
       current.includes(categoryId) ? current.filter((id) => id !== categoryId) : [...current, categoryId],
     );
+  }
+
+  function toggleDay(dayId: string) {
+    setAvailableDays((current) =>
+      current.includes(dayId) ? current.filter((id) => id !== dayId) : [...current, dayId],
+    );
+  }
+
+  function handlePlaceSelected(place: ParsedGooglePlace) {
+    setCoordinates({ latitude: place.latitude ?? undefined, longitude: place.longitude ?? undefined });
   }
 
   async function handleAvatarUploaded(result: { url: string }) {
@@ -101,7 +119,14 @@ export default function ProfessionalProfilePage() {
     try {
       await Promise.all([
         updateProfileRequest({ name, phone: phone || undefined }),
-        updateProfessionalProfileRequest({ bio: bio.trim() || undefined, serviceRadiusKm: numericRadius }),
+        updateProfessionalProfileRequest({
+          bio: bio.trim() || undefined,
+          serviceRadiusKm: numericRadius,
+          location: location.trim() || undefined,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          availableDays,
+        }),
         updateProfessionalCategories(selectedCategoryIds),
       ]);
       setMessage('Guardado.');
@@ -193,6 +218,45 @@ export default function ProfessionalProfilePage() {
               className="max-w-32"
             />
           </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium" htmlFor="prof-profile-location">
+              Localização
+            </label>
+            <AddressAutocomplete
+              id="prof-profile-location"
+              value={location}
+              onChange={setLocation}
+              onPlaceSelected={handlePlaceSelected}
+              placeholder="Morada, freguesia ou código postal"
+            />
+          </div>
+        </div>
+      </Card>
+
+      <Card className="mt-4 p-6">
+        <p className="font-medium">Disponibilidade semanal</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Dias em que costumas estar disponível — ajuda a organizares-te, ainda não filtra os pedidos que vês.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {WEEKDAY_OPTIONS.map((day) => {
+            const isSelected = availableDays.includes(day.id);
+            return (
+              <button
+                key={day.id}
+                type="button"
+                onClick={() => toggleDay(day.id)}
+                className={cn(
+                  'rounded-full border px-4 py-2 text-sm font-medium transition-colors',
+                  isSelected
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-border text-muted-foreground hover:border-primary/40',
+                )}
+              >
+                {day.label}
+              </button>
+            );
+          })}
         </div>
       </Card>
 

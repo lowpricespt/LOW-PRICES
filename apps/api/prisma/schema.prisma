@@ -67,6 +67,20 @@ model ProfessionalProfile {
   avatarUrl          String?  // placeholder até a Fase de Storage existir
   bio                String?
   serviceRadiusKm    Int      @default(15)
+  /// Morada de base do profissional (texto livre — mesmo padrão do
+  /// `ServiceRequest.location`), usada em conjunto com `serviceRadiusKm`.
+  /// `latitude`/`longitude` ficam por preencher quando o profissional
+  /// escreve a morada à mão sem geocoding (sem chave do Google Maps
+  /// configurada) — ver nota em `MatchingService` sobre o filtro de
+  /// distância ainda não estar ativo no matching em produção.
+  location           String?
+  latitude           Float?
+  longitude          Float?
+  /// Dias da semana em que o profissional está tipicamente disponível —
+  /// códigos curtos ('seg'..'dom'), mesmo formato usado no wizard de
+  /// registo (web e mobile). Distinto de `AvailabilityBlock`, que marca
+  /// bloqueios pontuais de datas específicas na Agenda.
+  availableDays      String[] @default([])
   verificationStatus String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
   isFeatured         Boolean  @default(false) // ver docs/business/BUSINESS_MODEL.md, secção 4
   featuredUntil      DateTime?

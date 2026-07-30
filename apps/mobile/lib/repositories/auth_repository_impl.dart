@@ -52,6 +52,31 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<void>> changePassword({required String currentPassword, required String newPassword}) {
+    return _apiService.guard(
+      () => _apiService.dio.patch(
+        '/auth/change-password',
+        data: {'currentPassword': currentPassword, 'newPassword': newPassword},
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> requestEmailChange({required String newEmail, required String currentPassword}) {
+    return _apiService.guard(
+      () => _apiService.dio.post(
+        '/auth/change-email',
+        data: {'newEmail': newEmail, 'currentPassword': currentPassword},
+      ),
+    );
+  }
+
+  @override
+  Future<Result<void>> deleteAccount() {
+    return _apiService.guard(() => _apiService.dio.delete('/users/me'));
+  }
+
+  @override
   Future<bool> hasActiveSession() async {
     final token = await _storageService.getRefreshToken();
     return token != null;

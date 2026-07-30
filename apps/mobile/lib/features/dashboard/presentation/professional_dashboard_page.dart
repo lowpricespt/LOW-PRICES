@@ -116,13 +116,14 @@ class _ProfessionalProfileTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = [
+      (icon: Icons.person_outline, label: 'Perfil', route: '/perfil-profissional'),
       (icon: Icons.assignment_turned_in_outlined, label: 'Trabalhos aceites', route: '/trabalhos-aceites'),
       (icon: Icons.chat_bubble_outline, label: 'Conversas', route: '/mensagens'),
       (icon: Icons.star_border, label: 'Avaliações', route: null),
       (icon: Icons.bar_chart_outlined, label: 'Estatísticas', route: null),
-      (icon: Icons.account_balance_wallet_outlined, label: 'Ganhos', route: null),
-      (icon: Icons.workspace_premium_outlined, label: 'Plano Premium', route: null),
-      (icon: Icons.settings_outlined, label: 'Definições', route: null),
+      (icon: Icons.account_balance_wallet_outlined, label: 'Ganhos', route: '/ganhos'),
+      (icon: Icons.workspace_premium_outlined, label: 'Plano Premium', route: '/plano-premium'),
+      (icon: Icons.settings_outlined, label: 'Definições', route: '/definicoes'),
     ];
 
     return Scaffold(

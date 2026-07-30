@@ -73,8 +73,8 @@ class _StepLocationState extends ConsumerState<StepLocation> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Por agora esta morada fica só guardada neste dispositivo — em breve vai ser usada para filtrar '
-            'pedidos por distância, como já acontece na descrição/raio de atuação.',
+            'Já fica guardada no teu perfil — a filtragem de pedidos por distância real ainda não está '
+            'ativa (por agora só a categoria decide que pedidos vês), mas a morada não se perde.',
             style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
         ],

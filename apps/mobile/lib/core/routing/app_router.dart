@@ -4,15 +4,19 @@ import '../../features/auth/presentation/login_page.dart';
 import '../../features/auth/presentation/register_page.dart';
 import '../../features/dashboard/presentation/client_dashboard_page.dart';
 import '../../features/dashboard/presentation/professional_dashboard_page.dart';
+import '../../features/earnings/presentation/earnings_page.dart';
 import '../../features/home/presentation/home_page.dart';
 import '../../features/jobs/presentation/accepted_jobs_page.dart';
 import '../../features/messages/presentation/conversation_thread_page.dart';
 import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
+import '../../features/premium/presentation/premium_page.dart';
+import '../../features/professional_profile/presentation/professional_profile_page.dart';
 import '../../features/professional_onboarding/presentation/onboarding_submitted_page.dart';
 import '../../features/professional_onboarding/presentation/professional_onboarding_wizard_page.dart';
 import '../../features/request_service/presentation/request_published_page.dart';
 import '../../features/request_service/presentation/request_service_wizard_page.dart';
+import '../../features/settings/presentation/settings_page.dart';
 import '../../features/splash/presentation/splash_page.dart';
 import '../../shared/widgets/placeholder_page.dart';
 
@@ -86,12 +90,27 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/definicoes',
       name: 'definicoes',
-      builder: (context, state) => const PlaceholderPage(title: 'Definições', icon: Icons.settings_outlined),
+      builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: '/perfil-profissional',
+      name: 'perfil-profissional',
+      builder: (context, state) => const ProfessionalProfilePage(),
     ),
     GoRoute(
       path: '/trabalhos-aceites',
       name: 'trabalhos-aceites',
       builder: (context, state) => const AcceptedJobsPage(),
+    ),
+    GoRoute(
+      path: '/ganhos',
+      name: 'ganhos',
+      builder: (context, state) => const EarningsPage(),
+    ),
+    GoRoute(
+      path: '/plano-premium',
+      name: 'plano-premium',
+      builder: (context, state) => const PremiumPage(),
     ),
     GoRoute(
       path: '/dashboard-cliente',

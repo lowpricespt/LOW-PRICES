@@ -29,8 +29,8 @@ class StepAvailability extends ConsumerWidget {
           Text('Quando estás disponível?', style: theme.textTheme.headlineMedium),
           const SizedBox(height: 6),
           Text(
-            'Por agora isto fica só guardado neste dispositivo — a disponibilidade semanal real ainda não '
-            'tem suporte no servidor (só bloqueios de datas específicas, na Agenda).',
+            'Ajuda-te a organizares-te — ainda não filtra os pedidos que vês. Bloqueios de datas específicas '
+            'ficam à parte, na Agenda.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),

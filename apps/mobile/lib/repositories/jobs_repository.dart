@@ -1,4 +1,5 @@
 import '../core/utils/result.dart';
+import '../models/earnings_summary.dart';
 import '../models/job.dart';
 import '../services/api_service.dart';
 
@@ -12,6 +13,13 @@ class JobsRepository {
     return _apiService.guard(() async {
       final response = await _apiService.dio.get<List<dynamic>>('/jobs/me');
       return response.data!.map((item) => JobModel.fromJson(item as Map<String, dynamic>)).toList();
+    });
+  }
+
+  Future<Result<EarningsSummary>> fetchEarnings() {
+    return _apiService.guard(() async {
+      final response = await _apiService.dio.get<Map<String, dynamic>>('/jobs/me/earnings');
+      return EarningsSummary.fromJson(response.data!);
     });
   }
 

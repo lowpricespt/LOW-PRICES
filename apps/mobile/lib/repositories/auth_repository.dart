@@ -1,6 +1,16 @@
 import '../core/errors/failure.dart';
 import '../core/utils/result.dart';
 
+/// Resultado de um login/registo com Google — distinto de `void` porque
+/// quem chama (ex.: o wizard de registo de profissional) precisa de saber
+/// se ainda faltam categorias por escolher, para decidir o próximo ecrã.
+class GoogleLoginOutcome {
+  const GoogleLoginOutcome({required this.role, required this.requiresCategorySelection});
+
+  final String role;
+  final bool requiresCategorySelection;
+}
+
 /// Contrato do repositório de autenticação (Repository Pattern). A
 /// implementação real liga-se ao `ApiService` assim que os endpoints de
 /// Auth existirem no backend NestJS — todas as features de UI dependem
@@ -15,6 +25,13 @@ abstract class AuthRepository {
     required String password,
     String role = 'CLIENT',
   });
+
+  /// `role` só importa quando a conta Google ainda não existe (decide se
+  /// nasce CLIENT ou PROFESSIONAL) — se já existir, é ignorado e usa-se a
+  /// role já gravada. `Ok(null)` significa que o utilizador fechou o ecrã
+  /// nativo do Google sem escolher conta — não é um erro, a UI não deve
+  /// mostrar nada; `Err` é uma falha real (rede, servidor, não configurado).
+  Future<Result<GoogleLoginOutcome?>> loginWithGoogle({String role = 'CLIENT'});
 
   Future<void> logout();
 
@@ -50,6 +67,11 @@ class StubAuthRepository implements AuthRepository {
     required String password,
     String role = 'CLIENT',
   }) async {
+    return const Err(UnknownFailure('Autenticação real ainda não implementada.'));
+  }
+
+  @override
+  Future<Result<GoogleLoginOutcome?>> loginWithGoogle({String role = 'CLIENT'}) async {
     return const Err(UnknownFailure('Autenticação real ainda não implementada.'));
   }
 

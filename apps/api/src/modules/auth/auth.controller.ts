@@ -17,6 +17,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ChangeEmailDto } from './dto/change-email.dto';
 import { ConfirmEmailChangeDto } from './dto/confirm-email-change.dto';
+import { GoogleMobileLoginDto } from './dto/google-mobile-login.dto';
 
 const REFRESH_COOKIE_NAME = 'lp_refresh_token';
 
@@ -120,6 +121,30 @@ export class AuthController {
         ? '/dashboard/profissional'
         : '/dashboard/cliente';
     res.redirect(`${frontendUrl}${destination}`);
+  }
+
+  /**
+   * Caminho de login/registo com Google para a app móvel — o Flutter
+   * troca o ID token nativo do Google por uma sessão nossa aqui, em vez
+   * do redirecionamento de página inteira usado no site (`/auth/google`),
+   * que não existe numa app. Devolve tokens no corpo (JSON), tal como
+   * `/auth/login` — o cookie fica definido na mesma para o caso raro de
+   * um WebView, mas o `ApiService` do Flutter já lê `refreshToken` do
+   * corpo, como faz para email/password.
+   */
+  @Public()
+  @Post('google/mobile')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async googleMobileLogin(
+    @Body() dto: GoogleMobileLoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const profile = await this.authService.verifyGoogleIdToken(dto.idToken);
+    const result = await this.authService.loginWithGoogle(profile, this.buildContext(req), dto.role);
+    this.setRefreshCookie(res, result.refreshToken);
+    return result;
   }
 
   @Public()

@@ -1,4 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { OAuth2Client } from 'google-auth-library';
 import { UsersRepository } from '../users/users.repository';
 import { UserResponseDto } from '../users/dto/user-response.dto';
 import { AuditLogService, AuditAction } from '../audit-log/audit-log.service';
@@ -15,6 +16,7 @@ import type { ForgotPasswordDto } from './dto/forgot-password.dto';
 import type { ResetPasswordDto } from './dto/reset-password.dto';
 import type { ChangePasswordDto } from './dto/change-password.dto';
 import type { ChangeEmailDto } from './dto/change-email.dto';
+import type { GoogleProfile } from './strategies/google.strategy';
 
 interface RequestContext {
   ipAddress?: string;
@@ -78,6 +80,38 @@ export class AuthService {
    * não as tem. O AuthController usa isto para redirecionar para o passo
    * de categorias em vez do dashboard.
    */
+  /**
+   * Verifica um ID token do Google emitido no dispositivo (app Flutter,
+   * via `google_sign_in`) — caminho diferente do fluxo OAuth por
+   * redirecionamento usado no site (`GoogleStrategy`/passport), porque
+   * uma app móvel não tem cookies partilhados com o browser nem consegue
+   * fazer um redirect de página inteira. `google_sign_in` deve ser
+   * configurado com `serverClientId` = o MESMO `GOOGLE_CLIENT_ID` (tipo
+   * "Web application") já usado pelo site — é o que faz o `aud` do token
+   * bater certo aqui, sem precisar de nenhuma credencial nova.
+   */
+  async verifyGoogleIdToken(idToken: string): Promise<GoogleProfile> {
+    const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    if (!clientId) {
+      throw new UnauthorizedException('Login com Google ainda não está configurado no servidor.');
+    }
+
+    const client = new OAuth2Client(clientId);
+    let payload: import('google-auth-library').TokenPayload | undefined;
+    try {
+      const ticket = await client.verifyIdToken({ idToken, audience: clientId });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Token do Google inválido ou expirado.');
+    }
+
+    if (!payload?.email) {
+      throw new UnauthorizedException('A conta Google não tem um email associado.');
+    }
+
+    return { googleId: payload.sub, email: payload.email, name: payload.name ?? payload.email };
+  }
+
   async loginWithGoogle(
     profile: { googleId: string; email: string; name: string },
     context: RequestContext,

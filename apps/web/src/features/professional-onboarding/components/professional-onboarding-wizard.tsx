@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { WizardShell } from '@/components/wizard';
 import { useAuth } from '@/providers/auth-provider';
 import type { ApiError } from '@/services/api';
-import type { ParsedGooglePlace } from '@/components/ui/address-autocomplete';
 import { updateProfessionalProfileRequest } from '@/features/profile/services/professional-profile-api';
 import { updateProfessionalCategories } from '../services/professional-onboarding-api';
 import { PROFESSIONAL_ONBOARDING_STEPS } from '../constants/steps';

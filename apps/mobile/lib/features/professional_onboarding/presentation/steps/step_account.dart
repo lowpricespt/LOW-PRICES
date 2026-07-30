@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/routing/dashboard_route.dart';
+import '../../../../repositories/auth_repository.dart';
+import '../../../../shared/widgets/google_sign_in_button.dart';
 import '../../providers/professional_onboarding_provider.dart';
 
 class StepAccount extends ConsumerStatefulWidget {
@@ -31,6 +35,18 @@ class _StepAccountState extends ConsumerState<StepAccount> {
     super.dispose();
   }
 
+  /// `requiresCategorySelection` é sempre true para uma conta nova (é o
+  /// que decide se nasce sem categorias) — avançar um passo leva direto a
+  /// "Categorias" (Passo 2), tal como o resto do wizard já faz. Uma conta
+  /// Google já existente e já completa salta o wizard todo.
+  void _handleGoogleSuccess(GoogleLoginOutcome outcome) {
+    if (outcome.requiresCategorySelection) {
+      ref.read(professionalOnboardingProvider.notifier).goNext();
+    } else {
+      context.go(dashboardRouteForRole(outcome.role));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -45,6 +61,19 @@ class _StepAccountState extends ConsumerState<StepAccount> {
           const SizedBox(height: 6),
           Text('Vais usá-la para receber e responder a pedidos.', style: theme.textTheme.bodyMedium),
           const SizedBox(height: 24),
+          GoogleSignInButton(role: 'PROFESSIONAL', onSuccess: _handleGoogleSuccess),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const Expanded(child: Divider()),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text('ou com email', style: theme.textTheme.bodySmall),
+              ),
+              const Expanded(child: Divider()),
+            ],
+          ),
+          const SizedBox(height: 20),
           TextField(
             controller: _nameController,
             onChanged: (value) => notifier.updateFormData((c) => c.copyWith(name: value)),

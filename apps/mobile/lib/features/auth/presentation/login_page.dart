@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../core/routing/dashboard_route.dart';
 import '../../../core/utils/result.dart';
 import '../../../providers/app_providers.dart';
+import '../../../repositories/auth_repository.dart';
 import '../../../shared/widgets/app_feedback.dart';
 import '../../../shared/widgets/auth_scaffold.dart';
+import '../../../shared/widgets/google_sign_in_button.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -50,6 +52,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     }
   }
 
+  void _handleGoogleSuccess(GoogleLoginOutcome outcome) {
+    context.go(dashboardRouteForRole(outcome.role));
+  }
+
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
@@ -66,7 +72,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
       child: LoadingOverlay(
         isLoading: _isSubmitting,
-        child: Form(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            GoogleSignInButton(onSuccess: _handleGoogleSuccess),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('ou com email', style: Theme.of(context).textTheme.bodySmall),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildForm(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -98,8 +128,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 }

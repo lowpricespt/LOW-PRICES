@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/routing/dashboard_route.dart';
 import '../../../core/utils/result.dart';
 import '../../../providers/app_providers.dart';
+import '../../../repositories/auth_repository.dart';
 import '../../../shared/widgets/app_feedback.dart';
 import '../../../shared/widgets/auth_scaffold.dart';
+import '../../../shared/widgets/google_sign_in_button.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
@@ -49,6 +52,10 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     }
   }
 
+  void _handleGoogleSuccess(GoogleLoginOutcome outcome) {
+    context.go(dashboardRouteForRole(outcome.role));
+  }
+
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
@@ -73,38 +80,56 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       ),
       child: LoadingOverlay(
         isLoading: _isSubmitting,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nome'),
-                validator: (value) => (value == null || value.trim().isEmpty) ? 'Indica o teu nome' : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            GoogleSignInButton(onSuccess: _handleGoogleSuccess),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('ou com email', style: Theme.of(context).textTheme.bodySmall),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Nome'),
+                    validator: (value) => (value == null || value.trim().isEmpty) ? 'Indica o teu nome' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'Email', hintText: 'tu@exemplo.com'),
+                    validator: (value) =>
+                        (value == null || !value.contains('@')) ? 'Introduz um email válido' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Palavra-passe', hintText: 'Mínimo 8 caracteres'),
+                    validator: (value) => (value == null || value.length < 8) ? 'Mínimo 8 caracteres' : null,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submit,
+                    child: const Text('Criar conta'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(labelText: 'Email', hintText: 'tu@exemplo.com'),
-                validator: (value) =>
-                    (value == null || !value.contains('@')) ? 'Introduz um email válido' : null,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Palavra-passe', hintText: 'Mínimo 8 caracteres'),
-                validator: (value) => (value == null || value.length < 8) ? 'Mínimo 8 caracteres' : null,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: const Text('Criar conta'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

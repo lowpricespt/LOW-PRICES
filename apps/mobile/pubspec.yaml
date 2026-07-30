@@ -45,6 +45,11 @@ dependencies:
   # documentação do profissional
   image_picker: ^1.1.2
 
+  # Login com Google (nativo — Android/iOS). Requer `serverClientId`
+  # configurado com o MESMO GOOGLE_CLIENT_ID (tipo "Web application") que
+  # a API usa para verificar o ID token — ver AuthService.verifyGoogleIdToken.
+  google_sign_in: ^6.2.1
+
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

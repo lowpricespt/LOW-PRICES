@@ -24,4 +24,11 @@ class Env {
       : _apiBaseUrlOverride;
 
   static const googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
+
+  /// Tem de ser o MESMO Client ID (tipo "Web application") que
+  /// `GOOGLE_CLIENT_ID` na API — é o que faz o `google_sign_in` nativo
+  /// (Android/iOS) emitir um ID token cujo `aud` bate certo com o que
+  /// `AuthService.verifyGoogleIdToken` espera. Vazio = login com Google
+  /// fica indisponível na app (ver `GoogleSignInButton`), sem rebentar.
+  static const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
 }

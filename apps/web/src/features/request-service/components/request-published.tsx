@@ -15,7 +15,7 @@ export function RequestPublished() {
         Vais receber uma notificação assim que um profissional enviar o primeiro orçamento.
       </p>
       <Button size="lg" asChild className="mt-2">
-        <Link href="/">Voltar ao início</Link>
+        <Link href="/dashboard/cliente">Voltar ao início</Link>
       </Button>
     </div>
   );

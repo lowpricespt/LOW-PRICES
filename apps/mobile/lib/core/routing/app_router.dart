@@ -5,6 +5,9 @@ import '../../features/auth/presentation/register_page.dart';
 import '../../features/dashboard/presentation/client_dashboard_page.dart';
 import '../../features/dashboard/presentation/professional_dashboard_page.dart';
 import '../../features/home/presentation/home_page.dart';
+import '../../features/jobs/presentation/accepted_jobs_page.dart';
+import '../../features/messages/presentation/conversation_thread_page.dart';
+import '../../features/messages/presentation/conversations_page.dart';
 import '../../features/onboarding/presentation/onboarding_page.dart';
 import '../../features/professional_onboarding/presentation/onboarding_submitted_page.dart';
 import '../../features/professional_onboarding/presentation/professional_onboarding_wizard_page.dart';
@@ -64,8 +67,15 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/mensagens',
       name: 'mensagens',
-      builder: (context, state) =>
-          const PlaceholderPage(title: 'Mensagens', icon: Icons.chat_bubble_outline_rounded),
+      builder: (context, state) => const ConversationsPage(),
+    ),
+    GoRoute(
+      path: '/mensagens/:quoteId',
+      name: 'mensagens-thread',
+      builder: (context, state) => ConversationThreadPage(
+        quoteId: state.pathParameters['quoteId']!,
+        otherPartyName: state.extra as String?,
+      ),
     ),
     GoRoute(
       path: '/favoritos',
@@ -77,6 +87,11 @@ final appRouter = GoRouter(
       path: '/definicoes',
       name: 'definicoes',
       builder: (context, state) => const PlaceholderPage(title: 'Definições', icon: Icons.settings_outlined),
+    ),
+    GoRoute(
+      path: '/trabalhos-aceites',
+      name: 'trabalhos-aceites',
+      builder: (context, state) => const AcceptedJobsPage(),
     ),
     GoRoute(
       path: '/dashboard-cliente',

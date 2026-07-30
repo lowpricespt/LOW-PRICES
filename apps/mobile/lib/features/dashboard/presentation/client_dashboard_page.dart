@@ -5,6 +5,7 @@ import '../../../core/utils/result.dart';
 import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
 import '../../../shared/widgets/app_empty_state.dart';
+import '../../messages/presentation/conversations_page.dart';
 import 'dashboard_scaffold.dart';
 import 'dashboard_tab_stub.dart';
 
@@ -27,7 +28,7 @@ class ClientDashboardPage extends StatelessWidget {
       pages: [
         _ClientHomeTab(),
         DashboardTabStub(title: 'Os meus pedidos', icon: Icons.assignment_outlined),
-        DashboardTabStub(title: 'Mensagens', icon: Icons.chat_bubble_outline),
+        ConversationsPage(),
         _ClientProfileTab(),
       ],
     );

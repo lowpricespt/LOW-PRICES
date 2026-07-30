@@ -44,11 +44,13 @@ class _ProfessionalHomeTab extends ConsumerStatefulWidget {
 
 class _ProfessionalHomeTabState extends ConsumerState<_ProfessionalHomeTab> {
   int? _availableCount;
+  double? _averageRating;
 
   @override
   void initState() {
     super.initState();
     _loadCount();
+    _loadRating();
   }
 
   Future<void> _loadCount() async {
@@ -59,12 +61,23 @@ class _ProfessionalHomeTabState extends ConsumerState<_ProfessionalHomeTab> {
     }
   }
 
+  Future<void> _loadRating() async {
+    final result = await ref.read(reviewsRepositoryProvider).fetchMyReviews();
+    if (!mounted) return;
+    if (result case Ok(:final value)) {
+      setState(() => _averageRating = value.average);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Recarrega sempre que este separador (índice 0) volta a ficar
     // visível — ver nota em `dashboardTabIndexProvider`.
     ref.listen<int>(dashboardTabIndexProvider, (previous, next) {
-      if (next == 0 && previous != 0) _loadCount();
+      if (next == 0 && previous != 0) {
+        _loadCount();
+        _loadRating();
+      }
     });
 
     return Scaffold(
@@ -80,7 +93,7 @@ class _ProfessionalHomeTabState extends ConsumerState<_ProfessionalHomeTab> {
                   child: _StatCard(label: 'Pedidos disponíveis', value: _availableCount?.toString() ?? '—'),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(child: _StatCard(label: 'Avaliação', value: '—')),
+                Expanded(child: _StatCard(label: 'Avaliação', value: _averageRating?.toStringAsFixed(1) ?? '—')),
               ],
             ),
             const SizedBox(height: 24),
@@ -102,14 +115,14 @@ class _ProfessionalProfileTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const items = [
-      (icon: Icons.assignment_turned_in_outlined, label: 'Trabalhos aceites'),
-      (icon: Icons.chat_bubble_outline, label: 'Conversas'),
-      (icon: Icons.star_border, label: 'Avaliações'),
-      (icon: Icons.bar_chart_outlined, label: 'Estatísticas'),
-      (icon: Icons.account_balance_wallet_outlined, label: 'Ganhos'),
-      (icon: Icons.workspace_premium_outlined, label: 'Plano Premium'),
-      (icon: Icons.settings_outlined, label: 'Definições'),
+    final items = [
+      (icon: Icons.assignment_turned_in_outlined, label: 'Trabalhos aceites', route: '/trabalhos-aceites'),
+      (icon: Icons.chat_bubble_outline, label: 'Conversas', route: '/mensagens'),
+      (icon: Icons.star_border, label: 'Avaliações', route: null),
+      (icon: Icons.bar_chart_outlined, label: 'Estatísticas', route: null),
+      (icon: Icons.account_balance_wallet_outlined, label: 'Ganhos', route: null),
+      (icon: Icons.workspace_premium_outlined, label: 'Plano Premium', route: null),
+      (icon: Icons.settings_outlined, label: 'Definições', route: null),
     ];
 
     return Scaffold(
@@ -118,10 +131,15 @@ class _ProfessionalProfileTab extends ConsumerWidget {
         children: [
           for (final item in items)
             ListTile(
-              leading: Icon(item.icon),
-              title: Text(item.label),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () {},
+              leading: Icon(item.icon, color: item.route == null ? Theme.of(context).disabledColor : null),
+              title: Text(
+                item.label,
+                style: item.route == null ? TextStyle(color: Theme.of(context).disabledColor) : null,
+              ),
+              trailing: item.route == null
+                  ? Text('Brevemente', style: Theme.of(context).textTheme.bodySmall)
+                  : const Icon(Icons.chevron_right),
+              onTap: item.route == null ? null : () => context.push(item.route!),
             ),
           const Divider(height: 32),
           ListTile(

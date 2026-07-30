@@ -51,6 +51,15 @@ class _AvailableRequestsPageState extends ConsumerState<AvailableRequestsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Recarrega sempre que este separador (índice 1 no dashboard do
+    // profissional) volta a ficar visível — ver nota em
+    // `dashboardTabIndexProvider`. Importante depois de enviar um
+    // orçamento: o pedido deixa de aparecer como disponível assim que se
+    // volta a esta lista.
+    ref.listen<int>(dashboardTabIndexProvider, (previous, next) {
+      if (next == 1 && previous != 1) _load();
+    });
+
     return Scaffold(
       appBar: AppBar(title: const Text('Pedidos disponíveis')),
       body: RefreshIndicator(

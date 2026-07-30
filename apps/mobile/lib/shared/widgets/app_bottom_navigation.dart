@@ -18,6 +18,13 @@ class AppBottomNavigation extends StatelessWidget {
 
   final List<AppBottomNavigationItem> items;
   final int currentIndex;
+
+  /// Chamado sempre que se toca num separador — mesmo o que já está
+  /// selecionado. `DashboardScaffold` usa isto para saber quando um
+  /// separador voltou a ficar visível e as suas contagens (pedidos
+  /// ativos, orçamentos, etc.) precisam de ser recarregadas — o
+  /// `IndexedStack` mantém todos os separadores vivos, por isso o
+  /// `initState()` de cada um só corre uma vez, nunca mais.
   final ValueChanged<int> onDestinationSelected;
 
   @override

@@ -66,6 +66,12 @@ class _ClientHomeTabState extends ConsumerState<_ClientHomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Recarrega sempre que este separador (índice 0) volta a ficar
+    // visível — ver nota em `dashboardTabIndexProvider`.
+    ref.listen<int>(dashboardTabIndexProvider, (previous, next) {
+      if (next == 0 && previous != 0) _load();
+    });
+
     return Scaffold(
       appBar: AppBar(title: const Text('Olá!')),
       body: SingleChildScrollView(
@@ -98,11 +104,11 @@ class _ClientHomeTabState extends ConsumerState<_ClientHomeTab> {
   }
 }
 
-class _ClientProfileTab extends StatelessWidget {
+class _ClientProfileTab extends ConsumerWidget {
   const _ClientProfileTab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const items = [
       (icon: Icons.inbox_outlined, label: 'Propostas recebidas'),
       (icon: Icons.favorite_border, label: 'Favoritos'),
@@ -122,6 +128,15 @@ class _ClientProfileTab extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {},
             ),
+          const Divider(height: 32),
+          ListTile(
+            leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+            title: Text('Sair', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            onTap: () async {
+              await ref.read(authRepositoryProvider).logout();
+              if (context.mounted) context.go('/');
+            },
+          ),
         ],
       ),
     );

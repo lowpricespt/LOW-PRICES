@@ -76,3 +76,14 @@ final categoriesProvider = FutureProvider<List<ServiceCategoryModel>>((ref) asyn
     Err(:final failure) => throw failure,
   };
 });
+
+/// Índice do separador ativo no `DashboardScaffold` atual (cliente ou
+/// profissional — só um está montado de cada vez). O `IndexedStack` do
+/// scaffold mantém todos os separadores vivos para não perder scroll/
+/// estado, o que significa que o `initState()` de cada um só corre uma
+/// vez — sem isto, contagens como "Pedidos ativos" ou "Pedidos
+/// disponíveis" ficavam congeladas no valor do primeiro carregamento e
+/// nunca refletiam ações feitas noutro separador (criar pedido, enviar
+/// orçamento, etc.). Os separadores "Início" fazem `ref.listen` a isto
+/// e recarregam sempre que voltam a ficar visíveis.
+final dashboardTabIndexProvider = StateProvider<int>((ref) => 0);

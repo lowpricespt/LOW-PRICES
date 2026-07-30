@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/utils/result.dart';
 import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
@@ -60,6 +61,12 @@ class _ProfessionalHomeTabState extends ConsumerState<_ProfessionalHomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    // Recarrega sempre que este separador (índice 0) volta a ficar
+    // visível — ver nota em `dashboardTabIndexProvider`.
+    ref.listen<int>(dashboardTabIndexProvider, (previous, next) {
+      if (next == 0 && previous != 0) _loadCount();
+    });
+
     return Scaffold(
       appBar: AppBar(title: const Text('Olá!')),
       body: SingleChildScrollView(
@@ -90,11 +97,11 @@ class _ProfessionalHomeTabState extends ConsumerState<_ProfessionalHomeTab> {
   }
 }
 
-class _ProfessionalProfileTab extends StatelessWidget {
+class _ProfessionalProfileTab extends ConsumerWidget {
   const _ProfessionalProfileTab();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const items = [
       (icon: Icons.assignment_turned_in_outlined, label: 'Trabalhos aceites'),
       (icon: Icons.chat_bubble_outline, label: 'Conversas'),
@@ -116,6 +123,15 @@ class _ProfessionalProfileTab extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {},
             ),
+          const Divider(height: 32),
+          ListTile(
+            leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
+            title: Text('Sair', style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            onTap: () async {
+              await ref.read(authRepositoryProvider).logout();
+              if (context.mounted) context.go('/');
+            },
+          ),
         ],
       ),
     );

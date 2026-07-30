@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../providers/app_providers.dart';
 import '../../../shared/widgets/app_bottom_navigation.dart';
 
-class DashboardScaffold extends StatefulWidget {
+class DashboardScaffold extends ConsumerStatefulWidget {
   const DashboardScaffold({super.key, required this.items, required this.pages, this.appBarTitle});
 
   final List<AppBottomNavigationItem> items;
@@ -9,11 +11,18 @@ class DashboardScaffold extends StatefulWidget {
   final String? appBarTitle;
 
   @override
-  State<DashboardScaffold> createState() => _DashboardScaffoldState();
+  ConsumerState<DashboardScaffold> createState() => _DashboardScaffoldState();
 }
 
-class _DashboardScaffoldState extends State<DashboardScaffold> {
+class _DashboardScaffoldState extends ConsumerState<DashboardScaffold> {
   int _currentIndex = 0;
+
+  void _selectTab(int index) {
+    setState(() => _currentIndex = index);
+    // Ver nota em `dashboardTabIndexProvider` — isto é o que permite aos
+    // separadores "Início" saberem que voltaram a ficar visíveis.
+    ref.read(dashboardTabIndexProvider.notifier).state = index;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +31,7 @@ class _DashboardScaffoldState extends State<DashboardScaffold> {
       bottomNavigationBar: AppBottomNavigation(
         items: widget.items,
         currentIndex: _currentIndex,
-        onDestinationSelected: (index) => setState(() => _currentIndex = index),
+        onDestinationSelected: _selectTab,
       ),
     );
   }

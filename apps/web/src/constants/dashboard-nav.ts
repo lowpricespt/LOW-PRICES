@@ -55,6 +55,7 @@ export const PROFESSIONAL_DASHBOARD_NAV: DashboardNavItem[] = [
   { id: 'estatisticas', label: 'Estatísticas', href: '/dashboard/profissional/estatisticas', icon: BarChart3 },
   { id: 'ganhos', label: 'Ganhos', href: '/dashboard/profissional/ganhos', icon: Wallet },
   { id: 'premium', label: 'Plano Premium', href: '/dashboard/profissional/premium', icon: Crown },
+  { id: 'notificacoes', label: 'Notificações', href: '/dashboard/profissional/notificacoes', icon: Bell },
   { id: 'perfil', label: 'Perfil', href: '/dashboard/profissional/perfil', icon: User },
   { id: 'definicoes', label: 'Definições', href: '/dashboard/profissional/definicoes', icon: Settings },
 ];

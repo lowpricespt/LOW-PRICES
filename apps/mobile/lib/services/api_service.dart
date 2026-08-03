@@ -40,7 +40,7 @@ class ApiService {
           }
 
           try {
-            await refreshAccessToken();
+            await _refreshAccessTokenSingleFlight();
             final retryOptions = error.requestOptions;
             retryOptions.extra['retried'] = true;
             final token = await _storageService.getAccessToken();
@@ -60,6 +60,29 @@ class ApiService {
   final StorageService _storageService;
 
   static const _maxRetries = 2;
+
+  // Vários pedidos podem falhar com 401 quase ao mesmo tempo (ex.: a app
+  // volta do segundo plano e dispara logo várias chamadas em paralelo).
+  // Sem coordenação, cada um dispararia o seu próprio `refreshAccessToken`
+  // com o MESMO refresh token ainda guardado — o backend roda o token a
+  // cada renovação, por isso o segundo pedido chegaria com um token já
+  // substituído pelo primeiro. Fora da janela de tolerância a rotações
+  // concorrentes (`REUSE_GRACE_PERIOD_MS` no backend), isto é tratado como
+  // reutilização de token roubado e revoga a sessão inteira — um logout
+  // inesperado sem o utilizador ter feito nada de errado. Mesmo dentro da
+  // janela, escritas concorrentes em `_storageService` podiam gravar um
+  // refresh token que já não correspondia ao que ficou ativo no servidor.
+  // Partilhar a mesma renovação em curso entre todos os pedidos concorrentes
+  // (mesmo padrão do `isRefreshing`/fila em `services/api/axios.ts` do
+  // website) elimina a corrida na origem, em vez de depender só da
+  // tolerância do lado do servidor.
+  Future<void>? _refreshInFlight;
+
+  Future<void> _refreshAccessTokenSingleFlight() {
+    return _refreshInFlight ??= refreshAccessToken().whenComplete(() {
+      _refreshInFlight = null;
+    });
+  }
 
   /// Troca o refresh token guardado por um novo par de tokens. Chamado
   /// automaticamente pelo interceptor acima quando um pedido devolve

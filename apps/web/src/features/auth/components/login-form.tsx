@@ -22,10 +22,19 @@ export function LoginForm() {
     setIsSubmitting(true);
     try {
       const user = await login(email, password);
-      const next = searchParams.get('next');
       const defaultDestination =
         user.role === 'ADMIN' ? '/admin' : user.role === 'PROFESSIONAL' ? '/dashboard/profissional' : '/dashboard/cliente';
-      router.push(next ?? defaultDestination);
+
+      // `next` vem de RequireAuth (?next=/dashboard/profissional, por
+      // exemplo) sempre que a sessão expirou a meio de uma página
+      // protegida — mas fica na URL mesmo que a pessoa entre a seguir com
+      // uma conta DIFERENTE (outro role). Sem esta validação, um admin que
+      // reentra a partir desse link acaba dentro do dashboard do
+      // profissional, porque `next` era honrado às cegas, sem verificar
+      // se ainda faz sentido para a conta que acabou de iniciar sessão.
+      const next = searchParams.get('next');
+      const destination = next && next.startsWith(defaultDestination) ? next : defaultDestination;
+      router.push(destination);
     } catch (err) {
       setError((err as ApiError).message ?? 'Não foi possível entrar. Tenta novamente.');
     } finally {
